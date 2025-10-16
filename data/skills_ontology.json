@@ -1,0 +1,9 @@
+﻿{
+  "python": ["py"],
+  "sql": ["postgresql", "mysql", "sqlite"],
+  "docker": ["containers", "containerization"],
+  "react": ["reactjs"],
+  "whisper": ["openai whisper"],
+  "nlp": ["natural language processing"],
+  "mlops": ["ml ops", "machine learning ops"]
+}

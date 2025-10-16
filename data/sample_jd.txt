@@ -1,0 +1,2 @@
+﻿Looking for strong Python and SQL experience. Bonus: Docker for deployment, React for UI.
+Experience with NLP or Whisper is a plus.

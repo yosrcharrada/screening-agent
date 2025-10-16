@@ -1,0 +1,4 @@
+﻿present_threshold: 0.85
+partial_threshold: 0.60
+max_questions: 5
+use_embeddings: true   # set to false if sentence-transformers is heavy

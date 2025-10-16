@@ -1,0 +1,10 @@
+﻿id,text,skill_tag,type,difficulty
+Q1,"Walk me through a recent project where you used {skill}. What was the goal and the measurable outcome?",generic,behavioral,medium
+Q2,"Can you explain how you would design a solution using {skill} to meet a key requirement from this JD?",generic,technical,hard
+Q3,"Tell me about a time you had to quickly learn or improve your {skill}. What did you do and what changed?",generic,behavioral,medium
+Q4,"Given this JD emphasizes {skill}, what trade-offs would you consider when implementing it in production?",generic,technical,hard
+Q5,"Describe a challenge you faced while working with {skill} and how you resolved it. Include metrics.",generic,behavioral,medium
+Q7,"For SQL: how would you optimize a slow query on a large table with frequent writes?",sql,technical,hard
+Q8,"For Docker: how do you structure images and manage multi-stage builds for smaller, secure artifacts?",docker,technical,medium
+Q9,"For Python: how do you ensure code quality and performance in data pipelines?",python,technical,medium
+Q10,"For React: how do you manage state and performance for large lists?",react,technical,medium

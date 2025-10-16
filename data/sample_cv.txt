@@ -1,0 +1,2 @@
+﻿Built Python ETL jobs and optimized SQL queries (PostgreSQL). Containerized services with Docker.
+Improved model latency by 30%. React dashboard for reporting.

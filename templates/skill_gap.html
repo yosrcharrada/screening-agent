@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Skill Gap Analysis</h2>
+        <p class="text-xl text-gray-600">See how your skills match the job requirements</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <!-- Matched Skills -->
+        <div class="bg-green-50 rounded-2xl p-8 border-2 border-green-200">
+            <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">✅</div>
+                <h3 class="text-2xl font-semibold text-green-800">Matched Skills</h3>
+            </div>
+            <div id="matchedSkills" class="space-y-4">
+                <div class="text-center py-8">
+                    <div class="loading-spinner mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Loading matched skills...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Missing Skills -->
+        <div class="bg-red-50 rounded-2xl p-8 border-2 border-red-200">
+            <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">❌</div>
+                <h3 class="text-2xl font-semibold text-red-800">Missing Skills</h3>
+            </div>
+            <div id="missingSkills" class="space-y-4">
+                <div class="text-center py-8">
+                    <div class="loading-spinner mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Loading skill gaps...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Evidence Section -->
+    <div class="bg-blue-50 rounded-2xl p-8 border-2 border-blue-200 mb-12">
+        <div class="flex items-center mb-6">
+            <div class="text-3xl mr-4">🔍</div>
+            <h3 class="text-2xl font-semibold text-blue-800">Evidence Analysis</h3>
+        </div>
+        <div id="evidenceSection" class="space-y-4">
+            <div class="text-center py-4">
+                <div class="loading-spinner mx-auto"></div>
+                <p class="mt-4 text-gray-600">Loading evidence analysis...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="text-center space-y-4">
+        <button onclick="getQuestions()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-xl transition duration-200 text-lg shadow-lg">
+            🎯 Generate Practice Questions
+        </button>
+        <br>
+        <a href="/upload/" class="inline-block bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition duration-200">
+            ↩️ Upload Different Documents
+        </a>
+    </div>
+</div>
+
+<script>
+const sessionId = {{ session_id }};
+
+// Fetch and display skills data
+async function loadSkills() {
+    try {
+        const response = await fetch(`/api/sessions/${sessionId}/skills/`);
+        const data = await response.json();
+        
+        // Display matched skills
+        const matchedDiv = document.getElementById('matchedSkills');
+        matchedDiv.innerHTML = '';
+        
+        if (data.matched_skills && data.matched_skills.length > 0) {
+            data.matched_skills.forEach(skill => {
+                const skillEl = document.createElement('div');
+                skillEl.className = 'bg-white p-4 rounded-lg border border-green-200';
+                skillEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <strong class="text-lg text-green-700">${skill.skill}</strong>
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Matched</span>
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <div>📄 CV: "${skill.evidence_cv}"</div>
+                        <div>💼 JD: "${skill.evidence_jd}"</div>
+                    </div>
+                `;
+                matchedDiv.appendChild(skillEl);
+            });
+        } else {
+            matchedDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No matched skills found</p>';
+        }
+        
+        // Display missing skills  
+        const missingDiv = document.getElementById('missingSkills');
+        missingDiv.innerHTML = '';
+        
+        if (data.missing_skills && data.missing_skills.length > 0) {
+            data.missing_skills.forEach(skill => {
+                const skillEl = document.createElement('div');
+                skillEl.className = 'bg-white p-4 rounded-lg border border-red-200';
+                skillEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <strong class="text-lg text-red-700">${skill.skill}</strong>
+                        <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">Missing</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <div>💼 JD Requirement: "${skill.evidence_jd}"</div>
+                    </div>
+                `;
+                missingDiv.appendChild(skillEl);
+            });
+        } else {
+            missingDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No missing skills found</p>';
+        }
+        
+        // Display evidence section - FIXED
+        const evidenceDiv = document.getElementById('evidenceSection');
+        evidenceDiv.innerHTML = '';
+        
+        if (data.evidence && data.evidence.length > 0) {
+            data.evidence.forEach(evidence => {
+                const evidenceEl = document.createElement('div');
+                evidenceEl.className = 'bg-white p-4 rounded-lg border border-blue-200';
+                evidenceEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <strong class="text-lg text-blue-700">${evidence.skill}</strong>
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Evidence</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-green-50 p-3 rounded border border-green-200">
+                            <div class="font-semibold text-green-700 mb-1">📄 Your CV Says:</div>
+                            <div class="text-gray-700">"${evidence.cv_sentence}"</div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                            <div class="font-semibold text-blue-700 mb-1">💼 Job Requires:</div>
+                            <div class="text-gray-700">"${evidence.jd_sentence}"</div>
+                        </div>
+                    </div>
+                `;
+                evidenceDiv.appendChild(evidenceEl);
+            });
+        } else {
+            evidenceDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No evidence analysis available</p>';
+        }
+        
+    } catch (error) {
+        console.error('Error loading skills:', error);
+        
+        // Show error messages
+        document.getElementById('matchedSkills').innerHTML = 
+            '<p class="text-red-500 text-center py-4">Error loading matched skills</p>';
+        document.getElementById('missingSkills').innerHTML = 
+            '<p class="text-red-500 text-center py-4">Error loading missing skills</p>';
+        document.getElementById('evidenceSection').innerHTML = 
+            '<p class="text-red-500 text-center py-4">Error loading evidence analysis</p>';
+    }
+}
+
+async function getQuestions() {
+    window.location.href = `/practice/${sessionId}/`;
+}
+
+// Load data when page opens
+loadSkills();
+</script>
+{% endblock %}

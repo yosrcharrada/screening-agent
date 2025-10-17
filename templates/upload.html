@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Start Your Interview Preparation</h2>
+        <p class="text-xl text-gray-600">Upload your CV and Job Description to get personalized coaching</p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+        <form id="uploadForm" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- CV Section -->
+            <div class="space-y-4">
+                <label class="block text-2xl font-semibold text-gray-800">
+                    📄 Your CV
+                </label>
+                <textarea 
+                    name="cv_text" 
+                    rows="8" 
+                    class="w-full p-6 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                    placeholder="Paste your CV content here... Include your skills, experiences, and achievements."
+                    required
+                >Experienced Python developer with 3 years of Django framework experience. Built multiple web applications and led a team of 4 developers. Strong background in project management and agile methodologies.</textarea>
+            </div>
+            
+            <!-- Job Description Section -->
+            <div class="space-y-4">
+                <label class="block text-2xl font-semibold text-gray-800">
+                    💼 Job Description
+                </label>
+                <textarea 
+                    name="jd_text" 
+                    rows="8" 
+                    class="w-full p-6 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                    placeholder="Paste the job description here... Include required skills and qualifications."
+                    required
+                >Looking for Senior Python Developer with Django expertise. Must have team leadership experience and knowledge of Docker containerization. Experience with AWS cloud services is a plus. Strong communication skills required.</textarea>
+            </div>
+            
+            <!-- Submit Button -->
+            <button 
+                type="submit" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition duration-200 text-lg shadow-lg"
+            >
+                🚀 Analyze & Generate Practice Questions
+            </button>
+        </form>
+        
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden mt-8 text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-xl text-gray-600">Analyzing your documents and generating personalized questions...</p>
+        </div>
+    </div>
+
+    <!-- Features Preview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="text-3xl mb-4">🔍</div>
+            <h3 class="text-xl font-semibold mb-2">Skill Gap Analysis</h3>
+            <p class="text-gray-600">Identify missing skills and get targeted recommendations</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="text-3xl mb-4">🎤</div>
+            <h3 class="text-xl font-semibold mb-2">Mock Interviews</h3>
+            <p class="text-gray-600">Practice with AI-powered interview simulations</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="text-3xl mb-4">📊</div>
+            <h3 class="text-xl font-semibold mb-2">Detailed Feedback</h3>
+            <p class="text-gray-600">Get explainable scores and improvement tips</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Show loading
+    document.getElementById('loading').classList.remove('hidden');
+    
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch('/api/parse/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                cv_text: formData.get('cv_text'),
+                jd_text: formData.get('jd_text')
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        
+        // Redirect to skill gap page with the session ID
+        window.location.href = `/skill-gap/${data.session_id}/`;
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating session. Please try again.');
+        document.getElementById('loading').classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

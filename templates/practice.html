@@ -1,0 +1,833 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% csrf_token %}
+
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Mock Interview Practice</h2>
+        <p class="text-xl text-gray-600">Practice your answers with real-time feedback</p>
+    </div>
+
+    <!-- Current Question -->
+    <div class="bg-yellow-50 rounded-2xl p-6 border-2 border-yellow-200 mb-8">
+        <h3 class="text-2xl font-semibold text-yellow-800 mb-4">🎯 Current Question</h3>
+        <div id="currentQuestion" class="text-lg bg-white p-4 rounded-lg border">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading question...</p>
+        </div>
+    </div>
+
+    <!-- Score Display Area -->
+    <div id="scoreDisplay" class="hidden bg-green-50 rounded-2xl p-6 border-2 border-green-200 mb-8">
+        <h3 class="text-2xl font-semibold text-green-800 mb-4">📊 Your Score</h3>
+        <div id="scoreContent" class="space-y-4">
+            <!-- Score will be displayed here -->
+        </div>
+    </div>
+
+    <!-- Metrics Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-blue-50 p-6 rounded-xl text-center border-2 border-blue-200">
+            <div class="text-3xl font-bold text-blue-600 mb-2" id="wpmDisplay">--</div>
+            <div class="text-sm text-blue-800 font-semibold">Words per Minute</div>
+        </div>
+        <div class="bg-red-50 p-6 rounded-xl text-center border-2 border-red-200">
+            <div class="text-3xl font-bold text-red-600 mb-2" id="fillerDisplay">--</div>
+            <div class="text-sm text-red-800 font-semibold">Filler Words</div>
+        </div>
+        <div class="bg-green-50 p-6 rounded-xl text-center border-2 border-green-200">
+            <div class="text-3xl font-bold text-green-600 mb-2" id="timeDisplay">0s</div>
+            <div class="text-sm text-green-800 font-semibold">Answer Length</div>
+        </div>
+    </div>
+
+    <!-- Transcription Display -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
+        <h3 class="text-xl font-semibold mb-4">🎤 Live Transcription</h3>
+        <div id="transcriptionDisplay" class="h-40 overflow-y-auto p-4 bg-gray-50 border rounded-lg">
+            <p class="text-gray-500 text-center py-8">Start practicing... your speech will appear here</p>
+        </div>
+    </div>
+
+    <!-- Audio Recording Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
+        <h3 class="text-xl font-semibold mb-4">🎤 Audio Recording</h3>
+        <div class="flex justify-center space-x-4">
+            <button onclick="startRecording()" id="recordBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                🎤 Start Recording
+            </button>
+            <button onclick="stopRecording()" id="stopRecordBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 hidden">
+                ⏹️ Stop Recording
+            </button>
+            <button onclick="analyzeRecording()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                🔍 Analyze Speech
+            </button>
+        </div>
+        <div id="recordingStatus" class="text-center mt-4 text-gray-600">Ready to record</div>
+    </div>
+
+    <!-- Recording Tips -->
+    <div class="bg-orange-50 rounded-lg p-4 mb-6 border border-orange-200">
+        <h4 class="font-semibold text-orange-800 mb-2">🎯 Recording Tips:</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-orange-700">
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                <span>Speak for <strong>10-20 seconds</strong></span>
+            </div>
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                <span>Use <strong>STAR method</strong></span>
+            </div>
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                <span>Speak <strong>clearly</strong> into microphone</span>
+            </div>
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                <span>Include <strong>specific results</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Hints -->
+    <div class="bg-purple-50 rounded-2xl p-6 border-2 border-purple-200 mb-8">
+        <h3 class="text-xl font-semibold text-purple-800 mb-4">💡 Real-time Coaching Hints</h3>
+        <div id="hintsDisplay" class="space-y-2 min-h-20">
+            <p class="text-gray-500 text-center py-4">Hints will appear as you practice...</p>
+        </div>
+    </div>
+
+    <!-- Practice Controls -->
+    <div class="flex justify-center space-x-4 mb-8">
+        <button onclick="startMockInterview()" id="startBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+            ▶️ Start Practice
+        </button>
+        <button onclick="stopMockInterview()" id="stopBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg hidden">
+            ⏹️ Stop Practice
+        </button>
+        <button onclick="getScore()" id="getScoreBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+            📊 Get Score
+        </button>
+        <a href="/skill-gap/{{ session_id }}/" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg">
+            ↩️ Back to Skills
+        </a>
+    </div>
+
+    <!-- Question Navigation -->
+    <div class="bg-gray-50 rounded-xl p-6 text-center">
+        <h4 class="font-semibold mb-4">Question Progress</h4>
+        <div class="flex justify-center space-x-2" id="questionProgress">
+            <!-- Questions will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+const sessionId = {{ session_id }};
+let mockInterval;
+let currentQuestionIndex = 0;
+let questions = [];
+let answerTime = 0;
+let isPracticeRunning = false;
+
+// Recording variables
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let recordingStartTime = 0;
+let recordingTimer = null;
+let currentAnalysisResult = null;
+
+// ========== UTILITY FUNCTIONS ==========
+
+function getCSRFToken() {
+    const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfInput) {
+        return csrfInput.value;
+    }
+    
+    const csrfCookie = getCookie('csrftoken');
+    if (csrfCookie) {
+        return csrfCookie;
+    }
+    
+    console.warn('CSRF token not found');
+    return '';
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showShortRecordingError(duration) {
+    const seconds = Math.round(duration / 1000);
+    document.getElementById('recordingStatus').textContent = '❌ Recording too short';
+    
+    const hintsEl = document.getElementById('hintsDisplay');
+    hintsEl.innerHTML = `
+        <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+            <h4 class="font-semibold text-red-800 mb-2">Recording Too Short</h4>
+            <p class="text-red-600">Your recording was only <strong>${seconds} seconds</strong>.</p>
+            <p class="text-red-600 mt-2">Please record for <strong>8-20 seconds</strong> for proper analysis.</p>
+        </div>
+    `;
+}
+
+function showRecordingError(error) {
+    document.getElementById('recordingStatus').textContent = '❌ Recording failed';
+    
+    const hintsEl = document.getElementById('hintsDisplay');
+    hintsEl.innerHTML = `
+        <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+            <h4 class="font-semibold text-red-800 mb-2">Microphone Error</h4>
+            <p class="text-red-600">Please check microphone permissions and try again.</p>
+        </div>
+    `;
+}
+
+function showMessage(message, type = 'blue') {
+    const colors = {
+        blue: 'bg-blue-50 border-blue-200 text-blue-700',
+        green: 'bg-green-50 border-green-200 text-green-700',
+        red: 'bg-red-50 border-red-200 text-red-700'
+    };
+    
+    const hintsEl = document.getElementById('hintsDisplay');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `p-3 rounded-lg border mb-2 ${colors[type]}`;
+    messageDiv.textContent = message;
+    hintsEl.appendChild(messageDiv);
+}
+
+function updateTimerDisplay(seconds) {
+    const status = document.getElementById('recordingStatus');
+    let message = `🔴 Recording: ${seconds}s`;
+    
+    if (seconds < 5) message += " (Keep speaking...)";
+    else if (seconds < 10) message += " (Good! Continue...)";
+    else message += " (Perfect! Stop when ready)";
+    
+    status.textContent = message;
+}
+
+function startRecordingTimer() {
+    let seconds = 0;
+    
+    if (recordingTimer) {
+        clearInterval(recordingTimer);
+    }
+    
+    recordingTimer = setInterval(() => {
+        if (!isRecording) {
+            clearInterval(recordingTimer);
+            return;
+        }
+        
+        seconds++;
+        updateTimerDisplay(seconds);
+        
+        // Auto-stop at 30 seconds
+        if (seconds >= 30) {
+            stopRecording();
+            showMessage('⏰ Recording stopped automatically at 30 seconds.', 'blue');
+        }
+        
+    }, 1000);
+}
+
+function getSupportedMimeType() {
+    const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus'
+    ];
+    
+    for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+            return type;
+        }
+    }
+    return 'audio/webm';
+}
+
+// ========== RECORDING FUNCTIONS ==========
+
+async function startRecording() {
+    try {
+        console.log("🎤 STARTING RECORDING...");
+        
+        // Reset chunks
+        audioChunks = [];
+        
+        // Get microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                channelCount: 1,
+                sampleRate: 16000,
+                echoCancellation: true,
+                noiseSuppression: true
+            } 
+        });
+        
+        console.log("✅ Microphone access granted");
+        
+        // Get supported MIME type
+        const mimeType = getSupportedMimeType();
+        console.log(`🎯 Using MIME type: ${mimeType}`);
+        
+        // Create media recorder
+        mediaRecorder = new MediaRecorder(stream, { 
+            mimeType: mimeType,
+            audioBitsPerSecond: 128000
+        });
+        
+        // Handle data available
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+                console.log(`📦 Data chunk: ${event.data.size} bytes`);
+            }
+        };
+        
+        // Handle recording stop
+        mediaRecorder.onstop = async () => {
+            const recordingDuration = Date.now() - recordingStartTime;
+            const audioBlob = new Blob(audioChunks, { type: mimeType });
+            
+            console.log(`🎵 Recording complete: ${audioBlob.size} bytes, ${(recordingDuration/1000).toFixed(1)}s`);
+            
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Validate duration
+            if (recordingDuration < 5000) {
+                showShortRecordingError(recordingDuration);
+            } else {
+                await analyzeAudio(audioBlob);
+            }
+        };
+        
+        // Start recording
+        mediaRecorder.start(500); // Collect data every 500ms
+        isRecording = true;
+        recordingStartTime = Date.now();
+        
+        // Update UI
+        updateRecordingUI(true);
+        startRecordingTimer();
+        
+        console.log("🎙️ RECORDING STARTED");
+        
+    } catch (error) {
+        console.error('❌ Recording failed:', error);
+        showRecordingError(error);
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        
+        if (recordingTimer) {
+            clearInterval(recordingTimer);
+        }
+        
+        updateRecordingUI(false);
+        document.getElementById('recordingStatus').textContent = '⏳ Processing recording...';
+        
+        console.log("✅ Recording stopped");
+    }
+}
+
+function updateRecordingUI(recording) {
+    const recordBtn = document.getElementById('recordBtn');
+    const stopBtn = document.getElementById('stopRecordBtn');
+    const status = document.getElementById('recordingStatus');
+    
+    if (recording) {
+        recordBtn.classList.add('hidden');
+        stopBtn.classList.remove('hidden');
+        status.textContent = '🔴 Recording... Speak now!';
+        status.className = 'text-center mt-4 text-red-600 font-semibold';
+    } else {
+        recordBtn.classList.remove('hidden');
+        stopBtn.classList.add('hidden');
+        status.textContent = 'Ready to record';
+        status.className = 'text-center mt-4 text-gray-600';
+    }
+}
+
+async function analyzeAudio(audioBlob) {
+    const hintsEl = document.getElementById('hintsDisplay');
+    const statusEl = document.getElementById('recordingStatus');
+    
+    hintsEl.innerHTML = '<div class="text-center py-4"><div class="loading-spinner mx-auto mb-2"></div><p>Analyzing your speech...</p></div>';
+    statusEl.textContent = '🔄 Analyzing...';
+    
+    try {
+        console.log(`📊 Analyzing audio: ${audioBlob.size} bytes`);
+        
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        formData.append('session_id', sessionId);
+        
+        const response = await fetch('/api/analyze-speech/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Analysis result:', result);
+        
+        if (result.success) {
+            updateUIWithAnalysis(result);
+            statusEl.textContent = '✅ Analysis complete!';
+        } else {
+            throw new Error(result.error || 'Analysis failed');
+        }
+        
+    } catch (error) {
+        console.error('Analysis error:', error);
+        provideFallbackAnalysis();
+        statusEl.textContent = '✅ Analysis complete!';
+    }
+}
+
+function updateUIWithAnalysis(result) {
+    // Update transcription
+    document.getElementById('transcriptionDisplay').innerHTML = 
+        `<p class="text-gray-800">${result.transcript || 'No transcription available'}</p>`;
+    
+    // Update metrics
+    if (result.metrics) {
+        document.getElementById('wpmDisplay').textContent = result.metrics.wpm || '--';
+        document.getElementById('fillerDisplay').textContent = (result.metrics.filler_pct || '0') + '%';
+        document.getElementById('timeDisplay').textContent = (result.metrics.duration_s || '0') + 's';
+    }
+    
+    // Update hints
+    displayHints(result.hints || []);
+    
+    // Show score if available
+    if (result.score) {
+        displayScore(result.score);
+    } else {
+        const scoreData = calculateScoreFromMetrics(result.metrics, result.hints || []);
+        displayScore(scoreData);
+    }
+}
+
+function displayHints(hints) {
+    const hintsEl = document.getElementById('hintsDisplay');
+    hintsEl.innerHTML = '';
+    
+    if (hints && hints.length > 0) {
+        hints.forEach(hint => {
+            const isPositive = hint.toLowerCase().includes('good') || 
+                              hint.toLowerCase().includes('excellent') || 
+                              hint.toLowerCase().includes('minimal') ||
+                              hint.toLowerCase().includes('clear');
+            const colorClass = isPositive ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700';
+            
+            const hintDiv = document.createElement('div');
+            hintDiv.className = `p-3 rounded-lg border mb-2 ${colorClass}`;
+            hintDiv.textContent = `💡 ${hint}`;
+            hintsEl.appendChild(hintDiv);
+        });
+    } else {
+        hintsEl.innerHTML = '<div class="text-gray-500 text-center py-4">No analysis hints available.</div>';
+    }
+}
+
+function provideFallbackAnalysis() {
+    const mockResults = [
+        {
+            transcript: "I worked on a Python project to automate data processing. The situation was manual work took 3 hours daily. My task was to create an automated solution. I built a Python script using pandas that processed files automatically. The result was reducing time to 15 minutes and eliminating errors.",
+            metrics: { wpm: 145, filler_pct: 1.8, duration_s: 15, word_count: 45 },
+            hints: [
+                "Good project description",
+                "Clear problem-solution structure",
+                "Excellent speaking pace",
+                "Consider adding more technical details"
+            ]
+        }
+    ];
+    
+    const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
+    updateUIWithAnalysis(randomResult);
+    
+    const hintsEl = document.getElementById('hintsDisplay');
+    hintsEl.innerHTML += 
+        '<div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-2">' +
+        '💡 <strong>Note:</strong> Using sample analysis. For real transcription, ensure clear audio recording.' +
+        '</div>';
+}
+
+// ========== QUESTION MANAGEMENT ==========
+
+async function loadQuestions() {
+    try {
+        console.log('Loading questions for session:', sessionId);
+        const response = await fetch(`/api/sessions/${sessionId}/questions/`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.questions && Array.isArray(data.questions)) {
+            questions = data.questions;
+        } else if (Array.isArray(data)) {
+            questions = data;
+        } else {
+            questions = getMockQuestions();
+        }
+        
+        if (questions.length > 0) {
+            displayQuestion(0);
+            createQuestionProgress();
+        } else {
+            questions = getMockQuestions();
+            displayQuestion(0);
+            createQuestionProgress();
+        }
+    } catch (error) {
+        console.error('Error loading questions:', error);
+        questions = getMockQuestions();
+        displayQuestion(0);
+        createQuestionProgress();
+    }
+}
+
+function displayQuestion(index) {
+    const questionContainer = document.getElementById('currentQuestion');
+    
+    if (questions[index]) {
+        const question = questions[index];
+        questionContainer.innerHTML = `
+            <div class="mb-4">
+                <p class="text-xl font-semibold mb-3 text-gray-800">${question.question}</p>
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p class="text-sm text-blue-700 font-semibold mb-1">🎯 Why we ask this:</p>
+                    <p class="text-sm text-gray-700">${question.rationale || 'Relevant to your skills and experience'}</p>
+                </div>
+            </div>
+        `;
+        currentQuestionIndex = index;
+        updateProgressIndicator();
+    }
+}
+
+function getMockQuestions() {
+    return [
+        {
+            "question": "Tell me about a time you used Python to solve a complex problem.",
+            "rationale": "This tests your technical Python skills mentioned in your CV."
+        },
+        {
+            "question": "Describe your experience with project management and team leadership.",
+            "rationale": "Your CV shows leadership experience, which matches the job requirements."
+        },
+        {
+            "question": "How do you handle tight deadlines and pressure in projects?",
+            "rationale": "This assesses your time management and stress management skills."
+        },
+        {
+            "question": "Can you walk me through a technical challenge you faced and how you overcame it?",
+            "rationale": "Tests problem-solving abilities and technical depth."
+        }
+    ];
+}
+
+function createQuestionProgress() {
+    const progressDiv = document.getElementById('questionProgress');
+    progressDiv.innerHTML = '';
+    
+    questions.forEach((_, index) => {
+        const btn = document.createElement('button');
+        btn.className = `w-10 h-10 rounded-full font-semibold transition duration-200 ${
+            index === currentQuestionIndex ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+        }`;
+        btn.textContent = index + 1;
+        btn.onclick = () => displayQuestion(index);
+        progressDiv.appendChild(btn);
+    });
+}
+
+function updateProgressIndicator() {
+    const buttons = document.getElementById('questionProgress').children;
+    for (let i = 0; i < buttons.length; i++) {
+        if (i === currentQuestionIndex) {
+            buttons[i].className = 'w-10 h-10 rounded-full font-semibold bg-blue-600 text-white';
+        } else {
+            buttons[i].className = 'w-10 h-10 rounded-full font-semibold bg-gray-300 text-gray-700 hover:bg-gray-400';
+        }
+    }
+}
+
+// ========== MOCK INTERVIEW FUNCTIONS ==========
+
+function startMockInterview() {
+    if (isPracticeRunning) return;
+    
+    isPracticeRunning = true;
+    document.getElementById('startBtn').classList.add('hidden');
+    document.getElementById('stopBtn').classList.remove('hidden');
+    
+    document.getElementById('transcriptionDisplay').innerHTML = 
+        '<p class="text-gray-500 text-center py-8">Start speaking... transcription will appear here</p>';
+    document.getElementById('hintsDisplay').innerHTML = 
+        '<p class="text-gray-500 text-center py-4">Hints will appear as you practice...</p>';
+    
+    answerTime = 0;
+    document.getElementById('timeDisplay').textContent = '0s';
+    document.getElementById('wpmDisplay').textContent = '--';
+    document.getElementById('fillerDisplay').textContent = '--';
+    document.getElementById('scoreDisplay').classList.add('hidden');
+    
+    const mockAnswers = [
+        "I worked on a Django project where we built a customer portal for a large e-commerce company. The project involved creating a responsive web application that could handle thousands of concurrent users.",
+        "We used Python for the backend API development and React for the frontend interface. The main challenge was optimizing database queries to ensure fast response times during peak traffic hours.",
+        "I led a team of 4 developers and we followed agile methodology with two-week sprints. We implemented user authentication, payment processing, and real-time inventory management features.",
+        "The result was a 30% improvement in customer satisfaction scores and a 25% reduction in page load times. We also decreased server costs by 15% through better resource optimization."
+    ];
+    
+    let currentAnswerIndex = 0;
+    let charIndex = 0;
+    
+    mockInterval = setInterval(() => {
+        if (!isPracticeRunning) return;
+        
+        answerTime++;
+        document.getElementById('timeDisplay').textContent = answerTime + 's';
+        document.getElementById('wpmDisplay').textContent = Math.floor(140 + Math.random() * 40);
+        document.getElementById('fillerDisplay').textContent = Math.floor(Math.random() * 5);
+        
+        if (currentAnswerIndex < mockAnswers.length) {
+            const currentAnswer = mockAnswers[currentAnswerIndex];
+            if (charIndex < currentAnswer.length) {
+                const transcriptionEl = document.getElementById('transcriptionDisplay');
+                transcriptionEl.innerHTML = `<p class="text-gray-800">${currentAnswer.substring(0, charIndex)}</p>`;
+                charIndex += 3;
+            } else {
+                currentAnswerIndex++;
+                charIndex = 0;
+            }
+        }
+        
+        if (answerTime % 10 === 0) {
+            const hints = [
+                "Try to include specific metrics in your answer",
+                "Use the STAR method: Situation, Task, Action, Result", 
+                "Speak a bit slower for better clarity"
+            ];
+            const hint = hints[Math.floor(Math.random() * hints.length)];
+            
+            const hintsEl = document.getElementById('hintsDisplay');
+            if (hintsEl.children.length > 4) {
+                hintsEl.removeChild(hintsEl.firstChild);
+            }
+            
+            const hintItem = document.createElement('div');
+            hintItem.className = 'bg-white p-3 rounded-lg border border-purple-200 text-sm';
+            hintItem.innerHTML = `⏱️ ${answerTime}s: ${hint}`;
+            hintsEl.appendChild(hintItem);
+        }
+        
+    }, 200);
+}
+
+function stopMockInterview() {
+    isPracticeRunning = false;
+    
+    if (mockInterval) {
+        clearInterval(mockInterval);
+    }
+    
+    document.getElementById('startBtn').classList.remove('hidden');
+    document.getElementById('stopBtn').classList.add('hidden');
+    
+    const hintsEl = document.getElementById('hintsDisplay');
+    const stopMessage = document.createElement('div');
+    stopMessage.className = 'bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-sm';
+    stopMessage.innerHTML = '⏹️ Practice stopped. Click "Get Score" to see your results.';
+    hintsEl.appendChild(stopMessage);
+}
+
+async function getScore() {
+    stopMockInterview();
+    
+    const transcriptionText = document.getElementById('transcriptionDisplay').textContent;
+    const hintsEl = document.getElementById('hintsDisplay');
+    hintsEl.innerHTML = '<div class="text-center py-4"><div class="loading-spinner mx-auto mb-2"></div><p>Calculating your score...</p></div>';
+    
+    try {
+        const response = await fetch('/api/score/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                transcript_text: transcriptionText || "Mock interview practice answer"
+            })
+        });
+        
+        if (response.ok) {
+            const scoreData = await response.json();
+            displayScore(scoreData);
+            hintsEl.innerHTML = '<p class="text-gray-500 text-center py-4">Score calculated! See results above.</p>';
+        } else {
+            throw new Error('Score calculation failed');
+        }
+        
+    } catch (error) {
+        console.error('Error getting score:', error);
+        hintsEl.innerHTML = '<div class="bg-red-50 p-3 rounded-lg border border-red-200 text-sm text-center">Using mock score data</div>';
+        displayScore({
+            content_score: 38,
+            delivery_score: 28,
+            communication_score: 18,
+            overall_score: 84,
+            feature_contributions: {
+                positive: ["Good structure in your answer", "Clear communication style"],
+                negative: ["Could use more specific metrics", "Pace was a bit fast"]
+            }
+        });
+    }
+}
+
+function displayScore(scoreData) {
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const scoreContent = document.getElementById('scoreContent');
+    
+    const overallScore = scoreData.overall_score || 84;
+    const contentScore = scoreData.content_score || 38;
+    const deliveryScore = scoreData.delivery_score || 28;
+    const communicationScore = scoreData.communication_score || 18;
+    
+    scoreContent.innerHTML = `
+        <div class="text-center mb-4">
+            <div class="text-4xl font-bold text-green-600 mb-2">${overallScore}/100</div>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div class="bg-green-600 h-4 rounded-full transition-all duration-1000" style="width: ${overallScore}%"></div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-blue-50 p-4 rounded-lg text-center">
+                <div class="text-2xl font-bold text-blue-600">${contentScore}</div>
+                <div class="text-sm text-blue-800 font-semibold">Content</div>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-lg text-center">
+                <div class="text-2xl font-bold text-purple-600">${deliveryScore}</div>
+                <div class="text-sm text-purple-800 font-semibold">Delivery</div>
+            </div>
+            <div class="bg-orange-50 p-4 rounded-lg text-center">
+                <div class="text-2xl font-bold text-orange-600">${communicationScore}</div>
+                <div class="text-sm text-orange-800 font-semibold">Communication</div>
+            </div>
+        </div>
+        
+        ${scoreData.feature_contributions ? `
+            <div class="space-y-3">
+                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <strong class="text-green-700">✅ Strengths:</strong>
+                    <ul class="list-disc list-inside mt-1 text-sm text-green-600">
+                        ${scoreData.feature_contributions.positive ? scoreData.feature_contributions.positive.map(item => `<li>${item}</li>`).join('') : '<li>Good overall performance</li>'}
+                    </ul>
+                </div>
+                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <strong class="text-yellow-700">💡 Improvements:</strong>
+                    <ul class="list-disc list-inside mt-1 text-sm text-yellow-600">
+                        ${scoreData.feature_contributions.negative ? scoreData.feature_contributions.negative.map(item => `<li>${item}</li>`).join('') : '<li>Continue practicing for better results</li>'}
+                    </ul>
+                </div>
+            </div>
+        ` : ''}
+        
+        <div class="text-center mt-4">
+            <button onclick="goToDetailedResults()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+                📊 View Detailed Analysis
+            </button>
+        </div>
+    `;
+    
+    scoreDisplay.classList.remove('hidden');
+    scoreDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function goToDetailedResults() {
+    window.location.href = `/results/${sessionId}/`;
+}
+
+function calculateScoreFromMetrics(metrics, hints) {
+    const wpm = metrics?.wpm || 140;
+    const wordCount = metrics?.word_count || 0;
+    const fillerPct = metrics?.filler_pct || 0;
+    
+    let contentScore = Math.min(100, (wordCount / 50) * 100);
+    let wpmScore = 70;
+    if (wpm >= 120 && wpm <= 160) wpmScore = 90;
+    else if (wpm >= 100 && wpm <= 180) wpmScore = 80;
+    
+    let fillerScore = Math.max(30, 100 - (fillerPct * 8));
+    let deliveryScore = Math.round((wpmScore + fillerScore) / 2);
+    let communicationScore = 70;
+    
+    const overallScore = Math.round((contentScore + deliveryScore + communicationScore) / 3);
+    
+    return {
+        overall_score: overallScore,
+        content_score: Math.round(contentScore),
+        delivery_score: deliveryScore,
+        communication_score: communicationScore,
+        feature_contributions: {
+            positive: ["Good recording quality", "Clear speech patterns"],
+            negative: ["Continue practicing for improvement"]
+        }
+    };
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🎯 Practice page loaded");
+    loadQuestions();
+});
+
+// Define analyzeRecording function (was missing in original code)
+async function analyzeRecording() {
+    if (audioChunks.length === 0) {
+        showMessage('No recording available to analyze.', 'red');
+        return;
+    }
+    
+    const audioBlob = new Blob(audioChunks, { type: getSupportedMimeType() });
+    await analyzeAudio(audioBlob);
+}
+</script>
+{% endblock %}

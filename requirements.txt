@@ -1,0 +1,18 @@
+Django>=4.2,<5.0
+djangorestframework
+django-cors-headers
+# requirements.txt - add these dependencies
+faster-whisper
+soundfile
+sounddevice
+scipy
+numpy
+pdfplumber 
+requests 
+beautifulsoup4 
+PyPDF2
+SpeechRecognition
+pydub 
+vosk
+openai-whisper
+//ffpmeg 

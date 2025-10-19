@@ -1,21 +1,27 @@
-﻿# WP4 â€” Skills & Questions (with evidence XAI)
+# 🎙️ WP5 — ASR & Delivery Metrics & Real-time Hints
 
-What you build:
-- POST /skills â†’ returns skills present in CV & JD, similarities, gap_map (present/partial/missing), tips, and evidence quotes (XAI).
-- POST /questions â†’ returns 5 JD-aware questions with rationale â€œTargets gap: <Skill>â€.
+This project implements an offline speech-to-text and delivery analysis system.  
+It uses **faster-whisper** for automatic speech recognition (ASR), computes metrics like **WPM**, **filler%**, and **STAR hints**, and explains the results for interview-like speaking analysis.
 
-Run locally (PowerShell):
-1) py -3 -m venv .venv
-2) .venv\Scripts\Activate.ps1
-3) pip install -r requirements.txt
-4) python -m spacy download en_core_web_sm
-5) CLI demo: python scripts\skills_demo.py data\sample_cv.txt data\sample_jd.txt
-6) Start API: uvicorn backend.app.main:app --reload
-7) Open http://127.0.0.1:8000/docs
+---
 
-Quick curl tests:
-- /skills
-curl -X POST http://127.0.0.1:8000/skills -H "Content-Type: application/json" -d "{\"cv_text\":\"Built Python ETL with SQL and Docker.\",\"jd_text\":\"We need Python and SQL; Docker is a plus.\"}"
+## 🚀 Features
 
-- /questions
-curl -X POST http://127.0.0.1:8000/questions -H "Content-Type: application/json" -d "{\"gap_map\":[{\"skill\":\"python\",\"status\":\"present\"},{\"skill\":\"sql\",\"status\":\"present\"},{\"skill\":\"docker\",\"status\":\"partial\"}]}"
+- 🎧 Local audio transcription (offline)
+- 📊 Delivery metrics: Words Per Minute (WPM), filler percentage, and duration
+- 💬 Real-time or batch hints for speech pacing and structure
+- 🧠 STAR analysis (Situation, Task, Action, Result)
+- 🪄 Optional WebSocket streaming for partial updates
+- 🪶 Works fully offline after setup
+
+---
+
+## 🧩 Dependencies
+
+Install these libraries inside your conda or virtual environment:
+
+```bash
+pip install faster-whisper soundfile numpy re regex websockets
+pip install ipywidgets
+pip install scipy
+pip install ffmpeg-python

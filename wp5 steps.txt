@@ -1,0 +1,21 @@
+Create or open a Conda environment:
+conda create -n audio_env python=3.10
+conda activate audio_env
+
+
+Install Python dependencies:
+pip install soundfile ipywidgets ipython numpy openai-whisper
+pip install faster-whisper soundfile numpy websockets ipywidgets ffmpeg-python scipy
+conda install -c conda-forge ffmpeg
+
+
+pip list
+should look like this :
+soundfile
+ipywidgets
+ipython
+numpy
+openai-whisper
+
+
+Run Jupyter Notebook:

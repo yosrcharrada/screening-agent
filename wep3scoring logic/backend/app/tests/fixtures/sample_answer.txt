@@ -1,0 +1,22 @@
+.3Question: Tell me about a time when you had to solve a difficult technical problem under pressure.
+
+Answer:
+In the situation where I was working as a backend engineer at a fintech startup, we experienced a critical bug in our payment processing system that was causing transactions to fail randomly. This was during our busiest quarter, affecting approximately 15% of our daily transactions, which translated to roughly $500,000 in daily revenue at risk.
+
+My task was to identify the root cause and implement a fix within 48 hours, as our SLA with merchants required 99.9% uptime and we were at risk of breaking that commitment.
+
+I immediately assembled a war room with our DevOps engineer and QA lead. First, I implemented comprehensive logging to capture the exact failure points. Then I analyzed three days of logs using Python scripts to identify patterns. I discovered that the issue occurred during high-concurrency scenarios where our Redis cache was experiencing race conditions.
+
+I developed a solution using distributed locks with Redis to ensure atomic operations during payment processing. I also implemented a retry mechanism with exponential backoff for transient failures. After thorough testing in our staging environment, we deployed the fix during a low-traffic window at 2 AM.
+
+As a result, transaction failures dropped from 15% to less than 0.1%. We recovered our SLA compliance and prevented an estimated $2.3 million in potential revenue loss over the next month. Additionally, the monitoring system I implemented helped us catch three other potential issues before they reached production. The CTO recognized our team's effort in the quarterly all-hands meeting.
+
+Metadata for testing:
+- Duration: approximately 85 seconds when spoken at normal pace
+- Word count: 265 words
+- Expected WPM: ~187 (if read in 85 seconds) or ~140 (if spoken naturally at ~110 seconds)
+- STAR completeness: 4/4 (all elements clearly present)
+- Specific metrics mentioned: 5 (15%, $500K, 48 hours, 99.9%, 0.1%, $2.3M)
+- Technical keywords: Python, Redis, distributed locks, atomic operations, retry mechanism, exponential backoff, DevOps, QA, staging, monitoring
+- Transition words: First, Then, Additionally
+- Tone: Professional, clear, quantitative

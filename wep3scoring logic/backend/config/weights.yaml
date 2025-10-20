@@ -1,0 +1,104 @@
+# ============================================
+# SCORING CONFIGURATION
+# ============================================
+
+# Final score formula: what percentage each category contributes
+final_score_weights:
+  content_weight: 0.45        # 45% of final score
+  delivery_weight: 0.35       # 35% of final score
+  communication_weight: 0.20  # 20% of final score
+
+# ============================================
+# CONTENT FEATURES (What they say)
+# ============================================
+
+content_features:
+  # How well did they structure the answer (has S, T, A, R)?
+  star_completeness:
+    weight: 0.35
+    description: "Situation, Task, Action, Result all present"
+    keywords:
+      situation: ["situation", "context", "background", "was asked", "faced", "when"]
+      task: ["task", "goal", "objective", "needed to", "had to", "mission"]
+      action: ["did", "implemented", "built", "created", "developed", "designed"]
+      result: ["result", "outcome", "achieved", "improved", "reduced", "increased"]
+
+  # Did they mention keywords from the job description?
+  jd_keyword_overlap:
+    weight: 0.25
+    description: "Percentage of JD keywords mentioned"
+    ideal_threshold: 0.5  # Ideal if at least 50% of keywords are mentioned
+
+  # Did they mention specific numbers/metrics?
+  specificity_metric:
+    weight: 0.20
+    description: "Presence of quantifiable results (30%, $5M, 2 weeks)"
+    metric_patterns: ["percentage", "dollar", "time", "count"]
+
+  # Is the answer relevant to the question?
+  relevance:
+    weight: 0.20
+    description: "Answer addresses the question directly"
+
+# ============================================
+# DELIVERY FEATURES (How they say it)
+# ============================================
+
+delivery_features:
+  # Speaking pace in words per minute
+  pace_wpm:
+    weight: 0.30
+    description: "Speaking speed"
+    ideal_range: [120, 160]   # Optimal range
+    too_slow: 80
+    too_fast: 200
+
+  # Count of filler words (um, uh, like, you know)
+  filler_rate:
+    weight: 0.25
+    description: "Percentage of filler words in speech"
+    filler_words: ["um", "uh", "like", "you know", "basically", "literally", "actually"]
+    ideal_rate: 0.02  # 2% is good
+
+  # How long was the answer?
+  answer_length:
+    weight: 0.25
+    description: "Answer duration in seconds"
+    too_short: 30
+    ideal_min: 60
+    ideal_max: 120
+    too_long: 180
+
+  # Is the tone expressive or monotone?
+  tone_expressiveness:
+    weight: 0.20
+    description: "Variation in speaking (not robotic)"
+
+# ============================================
+# COMMUNICATION FEATURES (How well they explain)
+# ============================================
+
+communication_features:
+  # Do they use transition words and connect ideas?
+  logical_flow:
+    weight: 0.50
+    description: "Clear transitions and logical structure"
+    transition_words: ["then", "next", "so", "as a result", "meanwhile", "finally", "therefore", "because", "this led to"]
+
+  # Are sentences clear and concise?
+  clarity:
+    weight: 0.50
+    description: "Sentence simplicity and clarity"
+    ideal_avg_sentence_length: 15  # words per sentence
+    max_avg_sentence_length: 30
+
+# ============================================
+# SCORING RANGES
+# ============================================
+
+score_ranges:
+  excellent: [85, 100]
+  good: [70, 84]
+  average: [55, 69]
+  needs_improvement: [40, 54]
+  poor: [0, 39]

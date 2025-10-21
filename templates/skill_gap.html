@@ -145,7 +145,7 @@ async function loadSkills() {
             `;
         }
         
-        // Display missing skills  
+        // Display missing skills 
         const missingDiv = document.getElementById('missingSkills');
         missingDiv.innerHTML = '';
         
@@ -159,7 +159,7 @@ async function loadSkills() {
                         <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">Missing</span>
                     </div>
                     <div class="text-sm text-gray-600">
-                        <div>💼 JD Requirement: "${skill.evidence_jd}"</div>
+                        <div>💼 JD Requirement: "${skill.jd_requirement}"</div>
                         ${skill.cv_context ? `<div class="mt-1 text-orange-600">📄 CV Context: "${skill.cv_context}"</div>` : ''}
                     </div>
                 `;

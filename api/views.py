@@ -6,27 +6,227 @@ from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript,
 from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer
 
 from .utils import extract_text_from_pdf, fetch_content_from_url, validate_pdf_file
-from .analysis import skill_analyzer
+from django.utils import timezone
 
 # views.py - Add these imports at the top
 import os
-import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-
-# Add this to your views.py
-import subprocess
-import tempfile
 import time
-# In views.py - replace analyze_speech function
-import os
+# Add this to your views.py
 import tempfile
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+# In views.py - replace analyze_speech function
 
-# In views.py - update the analyze_speech function
+from django.shortcuts import render
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import InterviewSession
+from .serializers import InterviewSessionSerializer
+
+from .utils import extract_text_from_pdf, fetch_content_from_url, validate_pdf_file
+from .analysis import dynamic_skill_analyzer
+
+from .file_processor import file_processor
+from django.core.files.storage import FileSystemStorage
+import tempfile
+import os
+
+from .file_processor import file_processor
+import tempfile
+import os
+
+from .analysis import dynamic_skill_analyzer  # Import your existing analyzer
+
+import logging
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import InterviewSession
+from .file_processor import file_processor
+from .analysis import dynamic_skill_analyzer
+
+# ADD THIS LOGGER
+logger = logging.getLogger(__name__)
+
+@api_view(['POST'])
+def parse_documents(request):
+    """Handle all document types: files, text, and URLs"""
+    try:
+        cv_file = request.FILES.get('cv_file')
+        cv_text = request.data.get('cv_text', '')
+        cv_url = request.data.get('cv_url', '')
+        cv_type = request.data.get('cv_type', 'text')
+        
+        jd_file = request.FILES.get('jd_file')
+        jd_text = request.data.get('jd_text', '')
+        jd_url = request.data.get('jd_url', '')
+        jd_type = request.data.get('jd_type', 'text')
+        
+        # Determine CV input
+        cv_input = None
+        if cv_type == 'file' and cv_file:
+            cv_input = cv_file
+        elif cv_type == 'text' and cv_text:
+            cv_input = cv_text
+        elif cv_type == 'url' and cv_url:
+            cv_input = cv_url
+        else:
+            return Response({"error": "Please provide CV content"}, status=400)
+        
+        # Determine JD input
+        jd_input = None
+        if jd_type == 'file' and jd_file:
+            jd_input = jd_file
+        elif jd_type == 'text' and jd_text:
+            jd_input = jd_text
+        elif jd_type == 'url' and jd_url:
+            jd_input = jd_url
+        else:
+            return Response({"error": "Please provide JD content"}, status=400)
+        
+        # Extract text from inputs using file processor
+        cv_content, jd_content = file_processor.process_documents_for_analysis(cv_input, jd_input)
+        
+        # Use your existing skill analyzer
+        analysis_result = dynamic_skill_analyzer.analyze_skill_gap(cv_content, jd_content)
+        
+        # Create session with analysis results
+        session = InterviewSession.objects.create(
+            cv_text=cv_content,
+            jd_text=jd_content,
+            analysis_data=analysis_result
+        )
+        
+        return Response({
+            "session_id": session.id,
+            "message": "Documents processed and analyzed successfully",
+            "analysis": analysis_result
+        })
+        
+    except Exception as e:
+        logger.error(f"Document processing error: {str(e)}")  # NOW THIS WILL WORK
+        return Response({"error": f"Processing failed: {str(e)}"}, status=500)
+
+@api_view(['POST']) 
+def analyze_direct(request):
+    """Direct analysis using your existing skill analyzer"""
+    try:
+        cv_file = request.FILES.get('cv_file')
+        cv_text = request.data.get('cv_text', '')
+        cv_url = request.data.get('cv_url', '')
+        
+        jd_file = request.FILES.get('jd_file')
+        jd_text = request.data.get('jd_text', '')
+        jd_url = request.data.get('jd_url', '')
+        
+        # Process CV (priority: file > text > url)
+        cv_input = None
+        if cv_file:
+            cv_input = cv_file
+        elif cv_text:
+            cv_input = cv_text
+        elif cv_url:
+            cv_input = cv_url
+        else:
+            return Response({"error": "Please provide CV content"}, status=400)
+        
+        # Process JD (priority: file > text > url)
+        jd_input = None
+        if jd_file:
+            jd_input = jd_file
+        elif jd_text:
+            jd_input = jd_text
+        elif jd_url:
+            jd_input = jd_url
+        else:
+            return Response({"error": "Please provide JD content"}, status=400)
+        
+        # Extract text
+        cv_content, jd_content = file_processor.process_documents_for_analysis(cv_input, jd_input)
+        
+        # Use your existing skill analyzer
+        analysis_result = dynamic_skill_analyzer.analyze_skill_gap(cv_content, jd_content)
+        
+        return Response(analysis_result)
+        
+    except Exception as e:
+        logger.error(f"Direct analysis error: {str(e)}")
+        return Response({"error": f"Analysis failed: {str(e)}"}, status=500)
+
+@api_view(['GET'])
+def get_skills(request, session_id):
+    """Get enhanced dynamic skill gap analysis"""
+    try:
+        session = InterviewSession.objects.get(pk=session_id)
+        logger.info(f"=== ENHANCED DYNAMIC ANALYSIS SESSION {session_id} ===")
+        
+    except InterviewSession.DoesNotExist:
+        return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        logger.info("Starting enhanced dynamic analysis...")
+        
+        # Perform enhanced analysis
+        analysis_result = dynamic_skill_analyzer.analyze_skill_gap(
+            session.cv_text, 
+            session.jd_text
+        )
+        
+        logger.info(f"Enhanced analysis completed:")
+        logger.info(f"- CV skills: {analysis_result.get('cv_skill_count', 0)}")
+        logger.info(f"- JD skills: {analysis_result.get('jd_skill_count', 0)}")
+        logger.info(f"- Matched skills: {len(analysis_result.get('matched_skills', []))}")
+        logger.info(f"- Match percentage: {analysis_result.get('match_percentage', 0)}%")
+        
+        return Response(analysis_result)
+        
+    except Exception as e:
+        logger.error(f"ENHANCED ANALYSIS ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return Response({
+            "error": "Enhanced analysis failed",
+            "details": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(['POST'])
+def analyze_skill_gap_files(request):
+    """Direct analysis from files without saving session"""
+    try:
+        cv_file = request.FILES.get('cv_file')
+        jd_file = request.FILES.get('jd_file')
+        cv_text = request.data.get('cv_text', '')
+        jd_text = request.data.get('jd_text', '')
+        
+        # Process CV
+        if cv_file:
+            is_valid, message = file_processor.validate_file(cv_file)
+            if not is_valid:
+                return Response({"error": f"CV file invalid: {message}"}, status=400)
+            cv_text = file_processor.extract_text_from_file(cv_file)
+        
+        # Process JD  
+        if jd_file:
+            is_valid, message = file_processor.validate_file(jd_file)
+            if not is_valid:
+                return Response({"error": f"JD file invalid: {message}"}, status=400)
+            jd_text = file_processor.extract_text_from_file(jd_file)
+        
+        if not cv_text or not jd_text:
+            return Response({"error": "Please provide both CV and JD content"}, status=400)
+        
+        # Perform analysis
+        analysis_result = dynamic_skill_analyzer.analyze_skill_gap(cv_text, jd_text)
+        
+        return Response(analysis_result)
+        
+    except Exception as e:
+        logger.error(f"Skill gap analysis error: {str(e)}")
+        return Response({"error": f"Analysis failed: {str(e)}"}, status=500)
+
 @csrf_exempt
 def analyze_speech(request):
     if request.method == 'POST' and request.FILES.get('audio'):
@@ -132,64 +332,46 @@ def calculate_interview_score(result):
             'negative': [h for h in hints if any(word in h.lower() for word in ['too', 'slow', 'fast', 'many', 'longer'])]
         }
     }
+
 @api_view(['POST'])
 def parse_cv_jd(request):
+    """Parse CV and JD using pure dynamic extraction"""
     cv_type = request.POST.get('cv_type', 'text')
     jd_type = request.POST.get('jd_type', 'text')
     
     cv_text = ""
     jd_text = ""
     
-    # Process CV based on input type
+    # Process CV
     if cv_type == 'text':
         cv_text = request.POST.get('cv_text', '')
-        if not cv_text.strip():
-            return Response({"error": "Please provide CV text"}, status=status.HTTP_400_BAD_REQUEST)
-            
     elif cv_type == 'pdf':
         cv_file = request.FILES.get('cv_file')
         if cv_file:
-            if not validate_pdf_file(cv_file):
-                return Response({"error": "Please upload a valid PDF file"}, status=status.HTTP_400_BAD_REQUEST)
-            
             cv_text = extract_text_from_pdf(cv_file)
-            if cv_text.startswith("Error extracting PDF"):
-                return Response({"error": "Failed to process PDF file"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "No PDF file provided"}, status=status.HTTP_400_BAD_REQUEST)
-            
     elif cv_type == 'url':
         cv_url = request.POST.get('cv_url', '')
         if cv_url:
             cv_text = fetch_content_from_url(cv_url)
-            if cv_text.startswith("Error fetching URL"):
-                return Response({"error": "Failed to fetch content from URL"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "No CV URL provided"}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Process JD based on input type
+    # Process JD
     if jd_type == 'text':
         jd_text = request.POST.get('jd_text', '')
-        if not jd_text.strip():
-            return Response({"error": "Please provide Job Description text"}, status=status.HTTP_400_BAD_REQUEST)
-            
     elif jd_type == 'url':
         jd_url = request.POST.get('jd_url', '')
         if jd_url:
             jd_text = fetch_content_from_url(jd_url)
-            if jd_text.startswith("Error fetching URL"):
-                return Response({"error": "Failed to fetch job description from URL"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "No Job URL provided"}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Validate content
+    # Validate
     if len(cv_text.strip()) < 10 or len(jd_text.strip()) < 10:
         return Response({"error": "Provided content is too short"}, status=status.HTTP_400_BAD_REQUEST)
     
     # Create session
     session_data = {
         'cv_text': cv_text,
-        'jd_text': jd_text
+        'jd_text': jd_text,
+        'cv_type': cv_type,
+        'jd_type': jd_type
     }
     
     serializer = InterviewSessionSerializer(data=session_data)
@@ -197,108 +379,151 @@ def parse_cv_jd(request):
         session = serializer.save()
         return Response({
             "session_id": session.id, 
-            "message": "CV and JD parsed successfully.",
-            "cv_type": cv_type,
-            "jd_type": jd_type,
+            "message": "CV and JD parsed successfully for dynamic analysis.",
             "cv_length": len(cv_text),
             "jd_length": len(jd_text)
         }, status=status.HTTP_201_CREATED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# MODIFIED get_skills VIEW:
+# In views.py - update the get_skills function
 @api_view(['GET'])
 def get_skills(request, session_id):
+    """Get enhanced dynamic skill gap analysis"""
     try:
         session = InterviewSession.objects.get(pk=session_id)
-        print(f"=== ANALYZING SESSION {session_id} ===")
-        print(f"CV Text Length: {len(session.cv_text)}")
-        print(f"JD Text Length: {len(session.jd_text)}")
+        print(f"=== ENHANCED DYNAMIC ANALYSIS SESSION {session_id} ===")
         
     except InterviewSession.DoesNotExist:
         return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
 
     try:
-        print("Starting skill analysis...")
-        analysis_result = skill_analyzer.analyze_skill_gap(
+        print("Starting enhanced dynamic analysis...")
+        
+        # Perform enhanced analysis
+        analysis_result = dynamic_skill_analyzer.analyze_skill_gap(
             session.cv_text, 
             session.jd_text
         )
         
-        print(f"Analysis completed: {len(analysis_result.get('matched_skills', []))} matched, {len(analysis_result.get('missing_skills', []))} missing")
-        print(f"Match percentage: {analysis_result.get('match_percentage', 0)}%")
+        print(f"Enhanced analysis completed:")
+        print(f"- CV skills: {analysis_result.get('cv_skill_count', 0)}")
+        print(f"- JD skills: {analysis_result.get('jd_skill_count', 0)}")
+        print(f"- Matched skills: {len(analysis_result.get('matched_skills', []))}")
+        print(f"- Match percentage: {analysis_result.get('match_percentage', 0)}%")
         
         return Response(analysis_result)
         
     except Exception as e:
-        print(f"ANALYSIS ERROR: {str(e)}")
-        return get_skills_fallback(session)
-
-def get_skills_fallback(session):
-    stub_skill_data = {
-        "matched_skills": [
-            {"skill": "Python", "evidence_cv": "Built a Django web application.", "evidence_jd": "Looking for a Python developer."},
-            {"skill": "Project Management", "evidence_cv": "Led a team of 5.", "evidence_jd": "Must lead projects."}
-        ],
-        "missing_skills": [
-            {"skill": "Docker", "evidence_jd": "Experience with containerization is a plus."}
-        ],
-        "evidence": [
-            {"skill": "Python", "cv_sentence": "Built Django web applications for 3 years", "jd_sentence": "Python developer with framework experience required", "status": "matched"},
-            {"skill": "Docker", "cv_sentence": "No containerization experience mentioned", "jd_sentence": "Docker and containerization experience required", "status": "missing"}
-        ],
-        "cv_skill_count": 2,
-        "jd_skill_count": 3,
-        "match_percentage": 66.7
-    }
-    
-    skill_result, created = SkillMatchResult.objects.get_or_create(
-        session=session, 
-        defaults=stub_skill_data
-    )
-    
-    response_data = {
-        'matched_skills': stub_skill_data['matched_skills'],
-        'missing_skills': stub_skill_data['missing_skills'],
-        'evidence': stub_skill_data['evidence'],
-        'cv_skill_count': 2,
-        'jd_skill_count': 3,
-        'match_percentage': 66.7
-    }
-    
-    return Response(response_data)
+        print(f"ENHANCED ANALYSIS ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return Response({
+            "error": "Enhanced analysis failed",
+            "details": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
 @api_view(['GET'])
-def get_questions(request, session_id):
-    """Stub endpoint for /questions. Returns targeted questions."""
+def get_concept_extraction_debug(request, session_id):
+    """Debug endpoint to see extracted concepts"""
     try:
         session = InterviewSession.objects.get(pk=session_id)
+        
+        cv_concepts = dynamic_skill_analyzer.extract_concepts_dynamic(session.cv_text)
+        jd_concepts = dynamic_skill_analyzer.extract_concepts_dynamic(session.jd_text)
+        
+        return Response({
+            "cv_concepts": cv_concepts,
+            "jd_concepts": jd_concepts,
+            "cv_concept_count": len(cv_concepts),
+            "jd_concept_count": len(jd_concepts)
+        })
+        
     except InterviewSession.DoesNotExist:
         return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    # Ensure this structure matches what frontend expects
-    stub_question_data = {
-        "questions": [
-            {
-                "question": "Tell me about a time you used Python to solve a complex problem.",
-                "rationale": "Your CV mentions Python and the JD requires it."
-            },
-            {
-                "question": "Describe your experience with project management.",
-                "rationale": "Your CV indicates leadership, a key skill for this role."
-            },
-            {
-                "question": "How do you handle tight deadlines in projects?",
-                "rationale": "This tests your time management skills mentioned in the JD."
-            },
-            {
-                "question": "What experience do you have with cloud technologies?",
-                "rationale": "The JD mentions AWS experience as a plus."
+@api_view(['GET'])
+def get_questions(request, session_id):
+    """Generate questions based on dynamic concept analysis"""
+    try:
+        session = InterviewSession.objects.get(pk=session_id)
+        
+        # Get dynamic analysis
+        analysis_result = dynamic_skill_analyzer.analyze_skill_gap(
+            session.cv_text, 
+            session.jd_text
+        )
+        
+        missing_skills = analysis_result.get('missing_skills', [])
+        matched_skills = analysis_result.get('matched_skills', [])
+        
+        questions = []
+        
+        # Questions about matched concepts (strengths)
+        for skill in matched_skills[:4]:
+            questions.append({
+                "question": f"Can you describe your experience with {skill['skill']}?",
+                "rationale": f"Your background shows experience with {skill['cv_concept']} which aligns with the job's need for {skill['jd_concept']}.",
+                "type": "strength",
+                "similarity": skill.get('similarity', 0),
+                "skill": skill['skill']
+            })
+        
+        # Questions about missing concepts (development areas)
+        for skill in missing_skills[:4]:
+            questions.append({
+                "question": f"How would you approach developing skills in {skill['skill']}?",
+                "rationale": f"The position requires {skill['concept']} which represents an area for development.",
+                "type": "development",
+                "skill": skill['skill']
+            })
+        
+        # Behavioral questions based on semantic analysis
+        semantic_result = analysis_result.get('semantic_analysis', {})
+        similar_pairs = semantic_result.get('most_similar_pairs', [])
+        
+        if similar_pairs:
+            questions.append({
+                "question": "Based on your experience, how would you approach the key responsibilities mentioned in this role?",
+                "rationale": "Semantic analysis shows your background has relevant experience for this position.",
+                "type": "behavioral",
+                "similarity_score": similar_pairs[0].get('similarity_score', 0)
+            })
+        
+        # Ensure minimum questions
+        if len(questions) < 3:
+            questions.extend([
+                {
+                    "question": "What motivated you to apply for this specific role?",
+                    "rationale": "Understanding your motivation and alignment with the role.",
+                    "type": "motivational"
+                },
+                {
+                    "question": "Can you walk me through a complex project you're particularly proud of?",
+                    "rationale": "Assessing your project experience and problem-solving approach.",
+                    "type": "behavioral"
+                }
+            ])
+        
+        return Response({
+            "questions": questions,
+            "analysis_summary": {
+                "matched_skills_count": len(matched_skills),
+                "missing_skills_count": len(missing_skills),
+                "match_percentage": analysis_result.get('match_percentage', 0),
+                "semantic_similarity": semantic_result.get('similarity_score', 0)
             }
-        ]
-    }
-    
-    # Return directly without database operations for now
-    return Response(stub_question_data)
+        })
+        
+    except InterviewSession.DoesNotExist:
+        return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            "error": "Dynamic question generation failed",
+            "details": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 @api_view(['POST'])
 def transcribe_audio(request):

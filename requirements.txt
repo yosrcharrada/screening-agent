@@ -1,7 +1,6 @@
 Django>=4.2,<5.0
 djangorestframework
 django-cors-headers
-# requirements.txt - add these dependencies
 faster-whisper
 soundfile
 sounddevice
@@ -15,4 +14,19 @@ SpeechRecognition
 pydub 
 vosk
 openai-whisper
-//ffpmeg 
+transformers
+torch 
+spacy 
+sentence-transformers 
+scikit-learn
+hf_xet
+keybert 
+nltk
+rapidfuzz
+python-docx 
+pdf2image
+pytesseract 
+pdfplumber 
+Pillow
+#python -c "import nltk; nltk.download('punkt')"
+# python -m spacy download en_core_web_sm

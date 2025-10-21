@@ -3,6 +3,8 @@ from django.views.generic import RedirectView  # ADD THIS IMPORT
 from . import views
 
 urlpatterns = [
+  path('parse/', views.parse_documents, name='parse_documents'),
+    path('analyze-direct/', views.analyze_direct, name='analyze_direct'),
     path('parse/', views.parse_cv_jd, name='parse'),
     path('sessions/<int:session_id>/skills/', views.get_skills, name='skills'),
     path('sessions/<int:session_id>/questions/', views.get_questions, name='questions'),

@@ -1,7 +1,14 @@
 from django.urls import path
+from django.views.generic import RedirectView  # ADD THIS IMPORT
 from . import views
 
 urlpatterns = [
+    # ADD THESE AUTH ROUTES
+    path('signup/', views.signup_view, name='signup'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('finalize-cv-signup/', views.finalize_cv_signup, name='finalize_cv_signup'),
+    
     path('parse/', views.parse_cv_jd, name='parse'),
     path('sessions/<int:session_id>/skills/', views.get_skills, name='skills'),
     path('sessions/<int:session_id>/questions/', views.get_questions, name='questions'),
@@ -15,4 +22,7 @@ urlpatterns = [
     path('skill-gap/<int:session_id>/', views.skill_gap_page, name='skill_gap'),
     path('practice/<int:session_id>/', views.practice_page, name='practice'),
     path('results/<int:session_id>/', views.results_page, name='results'),
+    path('', RedirectView.as_view(url='/upload/', permanent=False)),
+    path('api/analyze-speech/', views.analyze_speech, name='analyze_speech'),
+
 ]

@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-     'rest_framework',
+    'rest_framework',
     'corsheaders',
     'api',
 ]
@@ -134,3 +134,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 #     "http://localhost:3000",
 #     "http://127.0.0.1:3000",
 # ]
+
+# ADD THESE AT THE END
+AUTH_USER_MODEL = 'api.CustomUser'  # Point to CustomUser in api app
+
+LOGIN_REDIRECT_URL = '/upload/'
+LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = '/login/'

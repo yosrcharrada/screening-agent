@@ -1,0 +1,44 @@
+Django>=4.2,<5.0
+djangorestframework
+django-cors-headers
+faster-whisper
+soundfile
+sounddevice
+scipy
+numpy
+pdfplumber 
+requests 
+beautifulsoup4 
+PyPDF2
+SpeechRecognition
+pydub 
+vosk
+openai-whisper
+transformers
+torch 
+spacy 
+sentence-transformers 
+scikit-learn
+hf_xet
+keybert 
+nltk
+rapidfuzz
+python-docx 
+pdf2image
+pytesseract 
+pdfplumber 
+Pillow
+openai
+accelerate
+bitsandbytes
+langchain_community
+langchain
+langchain-text-splitters
+langchain_google_genai
+langchain-classic
+django-environ
+librosa
+#pip install --upgrade langchain langchain-classic langchain-core langchain-text-splitters langchain-community
+
+#python -c "import nltk; nltk.download('punkt')"
+# python -m spacy download en_core_web_sm

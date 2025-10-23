@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">🎯 AI CV Analysis</h2>
+        <p class="text-xl text-gray-600">Get instant, AI-powered feedback to improve your CV</p>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-2 border-blue-200">
+        <div class="text-center mb-8">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-2">Upload Your CV</h3>
+            <p class="text-gray-600">Get detailed feedback on content, formatting, and impact</p>
+        </div>
+
+        <form id="cvForm" enctype="multipart/form-data" class="space-y-6">
+            <!-- File Upload Option -->
+            <div class="bg-blue-50 rounded-xl p-6 border-2 border-blue-200 border-dashed">
+                <div class="text-center">
+                    <div class="text-3xl mb-3">📄</div>
+                    <h4 class="text-lg font-semibold text-blue-800 mb-2">Option 1: Upload CV File</h4>
+                    <input type="file" name="cv_file" accept=".pdf,.docx,.doc,.txt" 
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="text-sm text-gray-500 mt-2">Supports PDF, DOCX, DOC, TXT files</p>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="flex items-center justify-center">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="mx-4 text-gray-500 font-semibold">OR</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <!-- Text Input Option -->
+            <div class="bg-green-50 rounded-xl p-6 border-2 border-green-200">
+                <div class="text-center mb-4">
+                    <div class="text-3xl mb-3">📝</div>
+                    <h4 class="text-lg font-semibold text-green-800 mb-2">Option 2: Paste CV Text</h4>
+                </div>
+                <textarea name="cv_text" rows="8" 
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Paste your CV content here..."></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-12 rounded-xl transition duration-200 text-lg shadow-lg">
+                    🔍 Analyze My CV
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Loading Section -->
+    <div id="loading" class="hidden bg-white rounded-2xl shadow-lg p-12 mb-8 text-center border-2 border-blue-200">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <h3 class="text-2xl font-semibold text-gray-800 mb-2">🤖 AI is analyzing your CV...</h3>
+        <p class="text-gray-600">This may take a few seconds</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" class="hidden">
+        <!-- Overall Score -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-8 mb-8 text-center text-white">
+            <h3 class="text-2xl font-semibold mb-4">📊 Analysis Results</h3>
+            <div class="flex items-center justify-center space-x-4">
+                <div class="text-5xl font-bold" id="score">--</div>
+                <div class="text-left">
+                    <div class="text-2xl font-semibold">/10</div>
+                    <div class="text-blue-100">Overall Score</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Strengths -->
+            <div class="bg-green-50 rounded-2xl p-6 border-2 border-green-200">
+                <div class="flex items-center mb-6">
+                    <div class="text-3xl mr-4">✅</div>
+                    <h3 class="text-2xl font-semibold text-green-800">Strengths</h3>
+                </div>
+                <ul id="strengths" class="space-y-3">
+                    <!-- Strengths will be populated here -->
+                </ul>
+            </div>
+
+            <!-- Weaknesses -->
+            <div class="bg-red-50 rounded-2xl p-6 border-2 border-red-200">
+                <div class="flex items-center mb-6">
+                    <div class="text-3xl mr-4">❌</div>
+                    <h3 class="text-2xl font-semibold text-red-800">Areas for Improvement</h3>
+                </div>
+                <ul id="weaknesses" class="space-y-3">
+                    <!-- Weaknesses will be populated here -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="bg-yellow-50 rounded-2xl p-6 mb-8 border-2 border-yellow-200">
+            <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">💡</div>
+                <h3 class="text-2xl font-semibold text-yellow-800">Recommendations</h3>
+            </div>
+            <div id="recommendations" class="space-y-4">
+                <!-- Recommendations will be populated here -->
+            </div>
+        </div>
+
+        <!-- Detailed Analysis -->
+        <div id="detailedAnalysis" class="space-y-8">
+            <!-- Content Analysis -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-purple-200">
+                <div class="flex items-center mb-6">
+                    <div class="text-3xl mr-4">📋</div>
+                    <h3 class="text-2xl font-semibold text-purple-800">Content Analysis</h3>
+                </div>
+                <div id="contentAnalysis" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Content analysis will be populated here -->
+                </div>
+            </div>
+
+            <!-- Skill Analysis -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-blue-200">
+                <div class="flex items-center mb-6">
+                    <div class="text-3xl mr-4">🔧</div>
+                    <h3 class="text-2xl font-semibold text-blue-800">Skill Analysis</h3>
+                </div>
+                <div id="skillAnalysis" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Skill analysis will be populated here -->
+                </div>
+            </div>
+
+            <!-- Formatting Analysis -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-200">
+                <div class="flex items-center mb-6">
+                    <div class="text-3xl mr-4">🎨</div>
+                    <h3 class="text-2xl font-semibold text-green-800">Formatting Analysis</h3>
+                </div>
+                <div id="formattingAnalysis" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Formatting analysis will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('cvForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Show loading, hide results
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('results').classList.add('hidden');
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/analyze-cv/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        // Hide loading
+        document.getElementById('loading').classList.add('hidden');
+        
+        if (response.ok) {
+            displayResults(data.analysis);
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error occurred'));
+        }
+    } catch (error) {
+        document.getElementById('loading').classList.add('hidden');
+        alert('Analysis failed: ' + error.message);
+    }
+});
+
+function displayResults(analysis) {
+    // Display overall score
+    document.getElementById('score').textContent = analysis.overall_score || 'N/A';
+    
+    // Display strengths
+    const strengthsList = document.getElementById('strengths');
+    strengthsList.innerHTML = (analysis.strengths || []).map(s => 
+        `<li class="bg-white p-3 rounded-lg border border-green-200 flex items-start">
+            <span class="text-green-500 mr-2 mt-1">✓</span>
+            <span class="text-gray-700">${s}</span>
+        </li>`
+    ).join('');
+    
+    // Display weaknesses  
+    const weaknessesList = document.getElementById('weaknesses');
+    weaknessesList.innerHTML = (analysis.weaknesses || []).map(w => 
+        `<li class="bg-white p-3 rounded-lg border border-red-200 flex items-start">
+            <span class="text-red-500 mr-2 mt-1">⚠</span>
+            <span class="text-gray-700">${w}</span>
+        </li>`
+    ).join('');
+    
+    // Display recommendations
+    const recommendationsDiv = document.getElementById('recommendations');
+    recommendationsDiv.innerHTML = (analysis.recommendations || []).map(r => 
+        `<div class="bg-white p-4 rounded-lg border border-yellow-200 flex items-start">
+            <span class="text-yellow-500 mr-3 mt-1">💡</span>
+            <span class="text-gray-700">${r}</span>
+        </div>`
+    ).join('');
+    
+    // Display detailed analysis sections
+    displayDetailedAnalysis(analysis);
+    
+    // Show results section
+    document.getElementById('results').classList.remove('hidden');
+    
+    // Scroll to results
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function displayDetailedAnalysis(analysis) {
+    // Content Analysis
+    const contentDiv = document.getElementById('contentAnalysis');
+    if (analysis.content_analysis) {
+        contentDiv.innerHTML = Object.entries(analysis.content_analysis).map(([key, value]) => 
+            `<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="font-semibold text-gray-800 capitalize mb-2">${key.replace('_', ' ')}</div>
+                <div class="text-gray-600">${value}</div>
+            </div>`
+        ).join('');
+    }
+    
+    // Skill Analysis
+    const skillDiv = document.getElementById('skillAnalysis');
+    if (analysis.skill_analysis) {
+        skillDiv.innerHTML = Object.entries(analysis.skill_analysis).map(([key, value]) => 
+            `<div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div class="font-semibold text-blue-800 capitalize mb-2">${key.replace('_', ' ')}</div>
+                <div class="text-gray-600">${value}</div>
+            </div>`
+        ).join('');
+    }
+    
+    // Formatting Analysis
+    const formattingDiv = document.getElementById('formattingAnalysis');
+    if (analysis.formatting_analysis) {
+        formattingDiv.innerHTML = Object.entries(analysis.formatting_analysis).map(([key, value]) => 
+            `<div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div class="font-semibold text-green-800 capitalize mb-2">${key.replace('_', ' ')}</div>
+                <div class="text-gray-600">${value}</div>
+            </div>`
+        ).join('');
+    }
+    
+    // Key Insights
+    if (analysis.key_insights && analysis.key_insights.length > 0) {
+        const insightsDiv = document.createElement('div');
+        insightsDiv.className = 'bg-purple-50 rounded-2xl shadow-lg p-6 border-2 border-purple-200';
+        insightsDiv.innerHTML = `
+            <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">🔍</div>
+                <h3 class="text-2xl font-semibold text-purple-800">Key Insights</h3>
+            </div>
+            <div class="space-y-3">
+                ${analysis.key_insights.map(insight => 
+                    `<div class="bg-white p-4 rounded-lg border border-purple-200 flex items-start">
+                        <span class="text-purple-500 mr-3 mt-1">🌟</span>
+                        <span class="text-gray-700">${insight}</span>
+                    </div>`
+                ).join('')}
+            </div>
+        `;
+        document.getElementById('detailedAnalysis').appendChild(insightsDiv);
+    }
+}
+</script>
+
+<style>
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

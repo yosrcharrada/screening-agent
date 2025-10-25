@@ -15,6 +15,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ADD THIS LINE HERE - Custom User Model
+AUTH_USER_MODEL = 'api.CustomUser'  # MUST be before INSTALLED_APPS
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -134,3 +136,20 @@ CORS_ALLOW_ALL_ORIGINS = True
 #     "http://localhost:3000",
 #     "http://127.0.0.1:3000",
 # ]
+import environ
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+env = environ.Env()
+env.read_env(os.path.join(BASE_DIR, '.env'))
+
+GOOGLE_API_KEY = env('GOOGLE_API_KEY', default=None)
+
+LOGIN_REDIRECT_URL = '/upload/'
+LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = '/login/'
+
+# Media files for PDF reports
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

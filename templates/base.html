@@ -30,7 +30,28 @@
                 <div class="flex space-x-6">
                     <a href="/upload/" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if request.path == '/upload/' %}bg-blue-800{% endif %}">Upload CV/JD</a>
                     <a href="/practice/1/" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if '/practice/' in request.path %}bg-blue-800{% endif %}">Practice</a>
-                    <a href="/results/1/" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if '/results/' in request.path %}bg-blue-800{% endif %}">Results</a>
+                     <a href="/cv-analysis/" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if '/cv-analysis/' in request.path %}bg-blue-800{% endif %}">CV Analyzer</a>
+                 {% if user.is_authenticated %}
+                    <div class="flex items-center space-x-4 border-l border-blue-500 pl-4 ml-4">
+                        <span class="text-blue-100">Welcome, {{ user.first_name|default:user.username }}</span>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-medium">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center space-x-4 border-l border-blue-500 pl-4 ml-4">
+                        <a href="{% url 'login' %}" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200">
+                            Login
+                        </a>
+                        <a href="{% url 'signup' %}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-200 font-medium">
+                            Sign Up
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

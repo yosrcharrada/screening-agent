@@ -82,19 +82,61 @@
     </div>
     
     <!-- Action Buttons -->
-    <div class="text-center space-y-4">
-        <button onclick="getQuestions()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-xl transition duration-200 text-lg shadow-lg">
-            🎯 Generate Practice Questions
-        </button>
-        <br>
-        <a href="/upload/" class="inline-block bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition duration-200">
-            ↩️ Upload Different Documents
-        </a>
+   <!-- In skill_gap.html, replace the question generation section -->
+<div class="text-center mt-12 space-y-4">
+    <a href="/practice/{{ session_id }}/" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-xl transition duration-200 text-lg shadow-lg inline-block">
+        🎯 Start Practice Session
+    </a>
+    <br>
+    <a href="/upload/" class="inline-block bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition duration-200">
+        ↩️ Upload Different Documents
+    </a>
+</div>
+
+<!-- Remove the entire questionsSection div from skill_gap.html -->
+
     </div>
 </div>
 
 <script>
 const sessionId = {{ session_id }};
+
+// Get CSRF token safely - only ONE function with proper null checking
+function getCSRFToken() {
+    // Method 1: Try to get from hidden input
+    let csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfTokenElement && csrfTokenElement.value) {
+        return csrfTokenElement.value;
+    }
+    
+    // Method 2: Try to get from meta tag
+    csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+    if (csrfTokenElement && csrfTokenElement.getAttribute('content')) {
+        return csrfTokenElement.getAttribute('content');
+    }
+    
+    // Method 3: Get from cookies
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    
+    if (cookieValue) {
+        return cookieValue;
+    }
+    
+    // Method 4: Last resort - return empty string
+    console.warn('CSRF token not found. Requests may fail.');
+    return '';
+}
 
 // Fetch and display skills data
 async function loadSkills() {
@@ -160,7 +202,6 @@ async function loadSkills() {
                     </div>
                     <div class="text-sm text-gray-600">
                         <div>💼 JD Requirement: "${skill.jd_requirement}"</div>
-                        ${skill.cv_context ? `<div class="mt-1 text-orange-600">📄 CV Context: "${skill.cv_context}"</div>` : ''}
                     </div>
                 `;
                 missingDiv.appendChild(skillEl);
@@ -175,13 +216,12 @@ async function loadSkills() {
             `;
         }
         
-        // Display evidence section - FIXED
+        // Display evidence section
         const evidenceDiv = document.getElementById('evidenceSection');
         evidenceDiv.innerHTML = '';
         
         if (data.evidence && data.evidence.length > 0) {
             data.evidence.forEach(evidence => {
-                // FIX: Define statusColor and statusText here
                 const statusColor = evidence.status === 'matched' ? 'green' : 'red';
                 const statusText = evidence.status === 'matched' ? 'Matched' : 'Missing';
                 const statusIcon = evidence.status === 'matched' ? '✅' : '❌';
@@ -261,20 +301,93 @@ async function loadSkills() {
     }
 }
 
-async function getQuestions() {
-    // Show loading state
+// Generate questions function - SIMPLIFIED VERSION without CSRF
+async function generateQuestions() {
+// Add this at the beginning of generateQuestions()
+document.getElementById('questionsSection').classList.add('hidden');
+document.getElementById('questionsList').innerHTML = `
+    <div class="text-center py-8">
+        <div class="loading-spinner mx-auto"></div>
+        <p class="mt-4 text-gray-600">AI is generating personalized questions...</p>
+        <p class="text-sm text-gray-400">This may take 10-30 seconds for the first time</p>
+    </div>
+`;
     const button = event.target;
     const originalText = button.innerHTML;
-    button.innerHTML = '<div class="loading-spinner mx-auto" style="width: 20px; height: 20px; border-width: 2px;"></div> Generating Questions...';
-    button.disabled = true;
     
     try {
-        window.location.href = `/practice/${sessionId}/`;
+        button.innerHTML = '<div class="loading-spinner mx-auto" style="width: 20px; height: 20px; border-width: 2px;"></div> Generating Questions...';
+        button.disabled = true;
+        
+        console.log('Starting question generation for session:', sessionId);
+        
+        const response = await fetch(`/api/sessions/${sessionId}/generate-questions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error response:', errorText);
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Questions generated:', data);
+        
+        if (data.questions && data.questions.length > 0) {
+            displayQuestions(data.questions);
+        } else {
+            throw new Error('No questions were generated');
+        }
+        
     } catch (error) {
-        console.error('Error navigating to practice:', error);
-        button.innerHTML = originalText;
+        console.error('Error generating questions:', error);
+        alert('Error generating questions: ' + error.message);
+    } finally {
+        // Always re-enable the button
+        button.innerHTML = '🎯 Generate Practice Questions';
         button.disabled = false;
-        alert('Error generating questions. Please try again.');
+    }
+}
+
+function displayQuestions(questions) {
+    const questionsSection = document.getElementById('questionsSection');
+    const questionsList = document.getElementById('questionsList');
+    
+    questionsList.innerHTML = '';
+    
+    if (questions && questions.length > 0) {
+        questions.forEach((q, index) => {
+            const questionEl = document.createElement('div');
+            questionEl.className = 'bg-gray-50 p-6 rounded-xl border border-gray-200';
+            questionEl.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="text-lg font-semibold text-gray-800">Q${index + 1}. ${q.question}</h4>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <strong class="text-gray-700">Focus:</strong>
+                        <span class="text-gray-600 ml-2">${q.focus}</span>
+                    </div>
+                    <div>
+                        <strong class="text-gray-700">Rationale:</strong>
+                        <span class="text-gray-600 ml-2">${q.rationale}</span>
+                    </div>
+                </div>
+            `;
+            questionsList.appendChild(questionEl);
+        });
+        
+        questionsSection.classList.remove('hidden');
+        questionsSection.scrollIntoView({ behavior: 'smooth' });
+        
+    } else {
+        alert('No questions were generated. Please try again.');
     }
 }
 
@@ -293,6 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 40px;
     animation: spin 2s linear infinite;
 }
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }

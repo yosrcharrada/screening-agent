@@ -1,9 +1,25 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+class CustomUser(AbstractUser):
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    cv_text = models.TextField(blank=True, null=True)
+    registration_method = models.CharField(
+        max_length=10, 
+        choices=[('manual', 'Manual'), ('cv', 'CV Upload')],
+        default='manual'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.email
 
 class InterviewSession(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)  # This line must exist
     cv_text = models.TextField()
     jd_text = models.TextField()
-    created_at = models.DateTimeField(null=True, blank=True)  # Remove auto_now_add temporarily
+    created_at = models.DateTimeField(auto_now_add=True)
     analysis_data = models.JSONField(null=True, blank=True)
 
     def __str__(self):
@@ -17,7 +33,7 @@ class SkillMatchResult(models.Model):
     cv_skill_count = models.IntegerField(default=0)
     jd_skill_count = models.IntegerField(default=0)
     match_percentage = models.FloatField(default=0.0)
-    created_at = models.DateTimeField(null=True, blank=True)  # Remove auto_now_add temporarily
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Skills for Session {self.session.id}"
@@ -25,13 +41,17 @@ class SkillMatchResult(models.Model):
 class QuestionSet(models.Model):
     session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)
     questions = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Questions for Session {self.session.id}"
 
 class Transcript(models.Model):
     session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)
     text = models.TextField()
     filler_words = models.IntegerField(default=0)
     wpm = models.FloatField(default=0.0)
-    created_at = models.DateTimeField(null=True, blank=True)  # Remove auto_now_add temporarily
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class ScoreResult(models.Model):
     session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)
@@ -41,4 +61,4 @@ class ScoreResult(models.Model):
     overall_score = models.FloatField()
     feature_contributions = models.JSONField(default=dict)
     evidence_quotes = models.JSONField(default=list)
-    created_at = models.DateTimeField(null=True, blank=True)  # Remove auto_now_add temporarily
+    created_at = models.DateTimeField(auto_now_add=True)

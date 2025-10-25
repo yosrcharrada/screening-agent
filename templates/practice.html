@@ -52,19 +52,66 @@
         </div>
     </div>
 
-    <!-- Recording Section -->
+    <!-- Audio Recording Section -->
     <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
-        <h3 class="text-2xl font-semibold mb-4">🎤 Record Your Answer</h3>
-        <div class="flex justify-center space-x-4 mb-4">
+        <h3 class="text-xl font-semibold mb-4">🎤 Audio Recording</h3>
+        <div class="flex justify-center space-x-4">
             <button onclick="startRecording()" id="recordBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
                 🎤 Start Recording
             </button>
             <button onclick="stopRecording()" id="stopRecordBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 hidden">
                 ⏹️ Stop Recording
             </button>
-            
+            <button onclick="analyzeRecording()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                🔍 Analyze Speech
+            </button>
         </div>
-        <div id="recordingStatus" class="text-center text-gray-600">Ready to record your answer</div>
+        <div id="recordingStatus" class="text-center mt-4 text-gray-600">Ready to record</div>
+    </div>
+
+    <!-- Upload & Video Recording Section -->
+    <div class="flex flex-wrap justify-center gap-4 mt-4">
+        <!-- Upload Audio -->
+        <label for="audioUpload" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg cursor-pointer transition duration-200">
+            📁 Upload Audio (MP3/MP4/M4A)
+        </label>
+        <input type="file" id="audioUpload" accept=".mp3,.mp4,.m4a" class="hidden" onchange="handleAudioUpload(event)">
+
+    <!-- Record Video -->
+        <button onclick="startVideoRecording()" id="videoRecordBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+            🎥 Record Live Video
+        </button>
+    </div>
+
+    <!-- Recording Tips -->
+    <div class="bg-orange-50 rounded-lg p-4 mb-6 border border-orange-200">
+        <h4 class="font-semibold text-orange-800 mb-2">🎯 Recording Tips:</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-orange-700">
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                <span>Speak for <strong>10-20 seconds</strong></span>
+            </div>
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                <span>Use <strong>STAR method</strong></span>
+            </div>
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                <span>Speak <strong>clearly</strong> into microphone</span>
+            </div>
+            <div class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                <span>Include <strong>specific results</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Hints -->
+    <div class="bg-purple-50 rounded-2xl p-6 border-2 border-purple-200 mb-8">
+        <h3 class="text-xl font-semibold text-purple-800 mb-4">💡 Real-time Coaching Hints</h3>
+        <div id="hintsDisplay" class="space-y-2 min-h-20">
+            <p class="text-gray-500 text-center py-4">Hints will appear as you practice...</p>
+        </div>
     </div>
 
     <!-- Transcription Section -->
@@ -369,12 +416,12 @@ function updateRecordingUI(recording) {
         recordBtn.classList.add('hidden');
         stopBtn.classList.remove('hidden');
         status.textContent = '🔴 Recording... Speak now!';
-        status.className = 'text-center text-red-600 font-semibold';
+        status.className = 'text-center mt-4 text-red-600 font-semibold';
     } else {
         recordBtn.classList.remove('hidden');
         stopBtn.classList.add('hidden');
         status.textContent = 'Ready to record';
-        status.className = 'text-center text-gray-600';
+        status.className = 'text-center mt-4 text-gray-600';
     }
 }
 
@@ -447,7 +494,7 @@ function updateUIWithAnalysis(result) {
     }
 }
 
-function displayAnalysisHints(hints) {
+function displayHints(hints) {
     const hintsEl = document.getElementById('hintsDisplay');
     hintsEl.innerHTML = '';
     
@@ -1208,7 +1255,13 @@ function safeDebug() {
     }
 }
 
-// Define analyzeRecording function
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🎯 Practice page loaded");
+    loadQuestions();
+});
+
+// Define analyzeRecording function (was missing in original code)
 async function analyzeRecording() {
     if (audioChunks.length === 0) {
         showMessage('No recording available to analyze.', 'red');
@@ -1219,11 +1272,122 @@ async function analyzeRecording() {
     await analyzeAudio(audioBlob);
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("🎯 Practice page loaded with separate sections");
-    loadQuestions();
-});
+/ ================== NEW BUTTON FUNCTIONS ==================
+
+// Handle file upload
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log("📁 Uploaded file:", file);
+
+    // Call your existing analyzeAudio function
+    analyzeAudio(file);
+
+    const statusEl = document.getElementById('recordingStatus');
+    statusEl.textContent = `📁 Uploaded ${file.name}, analyzing...`;
+}
+
+// Video recording
+let videoStream;
+let videoRecorder;
+let videoChunks = [];
+
+async function startVideoRecording() {
+    try {
+        // Request video + audio
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+        videoRecorder = new MediaRecorder(videoStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+        videoChunks = [];
+
+        // Collect data chunks
+        videoRecorder.ondataavailable = e => { if (e.data.size > 0) videoChunks.push(e.data); };
+
+        // On stop: process video and extract audio
+        videoRecorder.onstop = async () => {
+            const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+            console.log("🎥 Video recording complete:", videoBlob);
+
+            // 1️⃣ Preview video
+            const url = URL.createObjectURL(videoBlob);
+            const videoPreview = document.createElement('video');
+            videoPreview.src = url;
+            videoPreview.controls = true;
+            videoPreview.className = 'mt-4 w-full rounded-lg';
+            document.getElementById('transcriptionDisplay').appendChild(videoPreview);
+
+            // 2️⃣ Extract audio and analyze
+            try {
+                const audioBlob = await extractAudioFromVideo(videoBlob);
+                await analyzeAudio(audioBlob);
+            } catch (err) {
+                console.error("❌ Failed to extract audio:", err);
+                showMessage("❌ Could not extract audio from video.", "red");
+            }
+
+            // 3️⃣ Stop webcam tracks
+            videoStream.getTracks().forEach(track => track.stop());
+
+            // 4️⃣ Reset button
+            const videoBtn = document.getElementById('videoRecordBtn');
+            videoBtn.textContent = '🎥 Record Live Video';
+            videoBtn.onclick = startVideoRecording;
+        };
+
+        // Start recording
+        videoRecorder.start();
+        console.log("🎥 Video recording started");
+        showMessage("🎥 Video recording started. Click again to stop.", "blue");
+
+        // Update button to stop
+        const videoBtn = document.getElementById('videoRecordBtn');
+        videoBtn.textContent = '⏹️ Stop Video Recording';
+        videoBtn.onclick = stopVideoRecording;
+
+    } catch (error) {
+        console.error("❌ Video recording failed:", error);
+        showMessage("❌ Video recording failed. Check camera permissions.", "red");
+    }
+}
+
+// Helper function: Extract audio from video Blob
+// Convert video Blob to audio-only Blob
+async function extractAudioFromVideoBlob(videoBlob) {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await videoBlob.arrayBuffer();
+    const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
+
+    // Create WAV
+    const numChannels = decodedData.numberOfChannels;
+    const sampleRate = decodedData.sampleRate;
+    const interleaved = new Float32Array(decodedData.length * numChannels);
+
+    for (let i = 0; i < decodedData.length; i++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+            interleaved[i * numChannels + ch] = decodedData.getChannelData(ch)[i];
+        }
+    }
+
+    // Convert float to 16-bit PCM
+    const buffer = new ArrayBuffer(interleaved.length * 2);
+    const view = new DataView(buffer);
+    for (let i = 0; i < interleaved.length; i++) {
+        let s = Math.max(-1, Math.min(1, interleaved[i]));
+        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+}
+
+
+// Stop function
+function stopVideoRecording() {
+    if (videoRecorder && videoRecorder.state !== 'inactive') {
+        videoRecorder.stop();
+    }
+}
+
 </script>
 
 <style>

@@ -3,39 +3,87 @@
 {% block content %}
     {% csrf_token %}
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="text-center mb-8">
         <h2 class="text-4xl font-bold text-gray-800 mb-4">Mock Interview Practice</h2>
-        <p class="text-xl text-gray-600">Practice your answers with real-time feedback</p>
+        <p class="text-xl text-gray-600">Practice with AI-generated questions and get expert feedback</p>
     </div>
 
-    <!-- Current Question -->
-    <div class="bg-yellow-50 rounded-2xl p-6 border-2 border-yellow-200 mb-8">
+    <!-- Current Question Section -->
+    <div class="bg-yellow-50 rounded-2xl p-6 border-2 border-yellow-200 mb-6">
         <h3 class="text-2xl font-semibold text-yellow-800 mb-4">🎯 Current Question</h3>
-        <div id="currentQuestion" class="text-lg bg-white p-4 rounded-lg border">
+        <div id="currentQuestion" class="text-lg bg-white p-4 rounded-lg border min-h-64">
             <div class="loading-spinner mx-auto mb-4"></div>
-            <p class="text-gray-600">Loading question...</p>
+            <p class="text-gray-600">Loading personalized questions...</p>
+        </div>
+        
+        <!-- View Answer Button -->
+        <div class="mt-4 text-center">
+            <button onclick="toggleModelAnswer()" id="viewAnswerBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                💡 View Model Answer
+            </button>
         </div>
     </div>
 
-    <!-- Score Display Area -->
-    <div id="scoreDisplay" class="hidden bg-green-50 rounded-2xl p-6 border-2 border-green-200 mb-8">
-        <h3 class="text-2xl font-semibold text-green-800 mb-4">📊 Your Score</h3>
-        <div id="scoreContent" class="space-y-4">
-            <!-- Score will be displayed here -->
+    <!-- Model Answer Section -->
+    <div id="modelAnswerSection" class="bg-green-50 rounded-2xl p-6 border-2 border-green-200 mb-6 hidden">
+        <h3 class="text-2xl font-semibold text-green-800 mb-4">📝 Model Answer</h3>
+        <div id="modelAnswerContent" class="bg-white p-4 rounded-lg border min-h-64 overflow-y-auto">
+            <p class="text-gray-500">Click "View Model Answer" to see the expert response</p>
+        </div>
+        
+        <!-- Hide Answer Button -->
+        <div class="mt-4 text-center">
+            <button onclick="toggleModelAnswer()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                👁️ Hide Answer
+            </button>
+        </div>
+    </div>
+
+    <!-- Hints Section -->
+    <div class="bg-purple-50 rounded-2xl p-6 border-2 border-purple-200 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-2xl font-semibold text-purple-800">💡 Answering Hints</h3>
+            <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold" id="hintsCount">0 hints</span>
+        </div>
+        <div id="hintsDisplay" class="space-y-3 min-h-32">
+            <p class="text-gray-500 text-center py-8">Answer hints will appear here for the current question...</p>
+        </div>
+    </div>
+
+    <!-- Recording Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
+        <h3 class="text-2xl font-semibold mb-4">🎤 Record Your Answer</h3>
+        <div class="flex justify-center space-x-4 mb-4">
+            <button onclick="startRecording()" id="recordBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                🎤 Start Recording
+            </button>
+            <button onclick="stopRecording()" id="stopRecordBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 hidden">
+                ⏹️ Stop Recording
+            </button>
+            
+        </div>
+        <div id="recordingStatus" class="text-center text-gray-600">Ready to record your answer</div>
+    </div>
+
+    <!-- Transcription Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
+        <h3 class="text-2xl font-semibold mb-4">🎤 Your Answer</h3>
+        <div id="transcriptionDisplay" class="h-40 overflow-y-auto p-4 bg-gray-50 border rounded-lg">
+            <p class="text-gray-500 text-center py-8">Start practicing... your speech will appear here</p>
         </div>
     </div>
 
     <!-- Metrics Dashboard -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div class="bg-blue-50 p-6 rounded-xl text-center border-2 border-blue-200">
             <div class="text-3xl font-bold text-blue-600 mb-2" id="wpmDisplay">--</div>
             <div class="text-sm text-blue-800 font-semibold">Words per Minute</div>
         </div>
         <div class="bg-red-50 p-6 rounded-xl text-center border-2 border-red-200">
             <div class="text-3xl font-bold text-red-600 mb-2" id="fillerDisplay">--</div>
-            <div class="text-sm text-red-800 font-semibold">Filler Words</div>
+            <div class="text-sm text-red-800 font-semibold">Filler Words %</div>
         </div>
         <div class="bg-green-50 p-6 rounded-xl text-center border-2 border-green-200">
             <div class="text-3xl font-bold text-green-600 mb-2" id="timeDisplay">0s</div>
@@ -43,82 +91,39 @@
         </div>
     </div>
 
-    <!-- Transcription Display -->
-    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
-        <h3 class="text-xl font-semibold mb-4">🎤 Live Transcription</h3>
-        <div id="transcriptionDisplay" class="h-40 overflow-y-auto p-4 bg-gray-50 border rounded-lg">
-            <p class="text-gray-500 text-center py-8">Start practicing... your speech will appear here</p>
-        </div>
-    </div>
-
-    <!-- Audio Recording Section -->
-    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border">
-        <h3 class="text-xl font-semibold mb-4">🎤 Audio Recording</h3>
-        <div class="flex justify-center space-x-4">
-            <button onclick="startRecording()" id="recordBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                🎤 Start Recording
-            </button>
-            <button onclick="stopRecording()" id="stopRecordBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 hidden">
-                ⏹️ Stop Recording
-            </button>
-            <button onclick="analyzeRecording()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                🔍 Analyze Speech
-            </button>
-        </div>
-        <div id="recordingStatus" class="text-center mt-4 text-gray-600">Ready to record</div>
-    </div>
-
-    <!-- Recording Tips -->
-    <div class="bg-orange-50 rounded-lg p-4 mb-6 border border-orange-200">
-        <h4 class="font-semibold text-orange-800 mb-2">🎯 Recording Tips:</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-orange-700">
-            <div class="flex items-center">
-                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                <span>Speak for <strong>10-20 seconds</strong></span>
-            </div>
-            <div class="flex items-center">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                <span>Use <strong>STAR method</strong></span>
-            </div>
-            <div class="flex items-center">
-                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                <span>Speak <strong>clearly</strong> into microphone</span>
-            </div>
-            <div class="flex items-center">
-                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                <span>Include <strong>specific results</strong></span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Real-time Hints -->
-    <div class="bg-purple-50 rounded-2xl p-6 border-2 border-purple-200 mb-8">
-        <h3 class="text-xl font-semibold text-purple-800 mb-4">💡 Real-time Coaching Hints</h3>
-        <div id="hintsDisplay" class="space-y-2 min-h-20">
-            <p class="text-gray-500 text-center py-4">Hints will appear as you practice...</p>
+    <!-- Score Display Section -->
+    <div id="scoreDisplay" class="bg-green-50 rounded-2xl p-6 border-2 border-green-200 mb-6 hidden">
+        <h3 class="text-2xl font-semibold text-green-800 mb-4">📊 Your Score</h3>
+        <div id="scoreContent" class="space-y-4">
+            <!-- Score will be displayed here -->
         </div>
     </div>
 
     <!-- Practice Controls -->
-    <div class="flex justify-center space-x-4 mb-8">
-        <button onclick="startMockInterview()" id="startBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
-            ▶️ Start Practice
+    <div class="flex justify-center space-x-4 mb-6 flex-wrap gap-2">
+       
+        <button onclick="generateMoreQuestions()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+            🔄 New Questions
         </button>
-        <button onclick="stopMockInterview()" id="stopBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg hidden">
-            ⏹️ Stop Practice
-        </button>
-        <button onclick="getScore()" id="getScoreBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
-            📊 Get Score
-        </button>
-        <a href="/skill-gap/{{ session_id }}/" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg">
+       <a href="/skill-gap/{{ session_id }}/" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg">
             ↩️ Back to Skills
         </a>
+        <button onclick="generatePDFReport()" id="pdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+            📄 Generate PDF Report
+        </button>
+    </div>
+
+    <!-- Debug Section -->
+    <div class="text-center mb-4">
+        <button onclick="safeDebug()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm">
+            🐛 Debug Questions
+        </button>
     </div>
 
     <!-- Question Navigation -->
     <div class="bg-gray-50 rounded-xl p-6 text-center">
-        <h4 class="font-semibold mb-4">Question Progress</h4>
-        <div class="flex justify-center space-x-2" id="questionProgress">
+        <h4 class="font-semibold text-xl mb-4">Question Progress</h4>
+        <div class="flex justify-center space-x-2 flex-wrap gap-2" id="questionProgress">
             <!-- Questions will be loaded here -->
         </div>
     </div>
@@ -132,6 +137,7 @@ let currentQuestionIndex = 0;
 let questions = [];
 let answerTime = 0;
 let isPracticeRunning = false;
+let isAnswerVisible = false;
 
 // Recording variables
 let mediaRecorder = null;
@@ -363,12 +369,12 @@ function updateRecordingUI(recording) {
         recordBtn.classList.add('hidden');
         stopBtn.classList.remove('hidden');
         status.textContent = '🔴 Recording... Speak now!';
-        status.className = 'text-center mt-4 text-red-600 font-semibold';
+        status.className = 'text-center text-red-600 font-semibold';
     } else {
         recordBtn.classList.remove('hidden');
         stopBtn.classList.add('hidden');
         status.textContent = 'Ready to record';
-        status.className = 'text-center mt-4 text-gray-600';
+        status.className = 'text-center text-gray-600';
     }
 }
 
@@ -428,18 +434,20 @@ function updateUIWithAnalysis(result) {
     }
     
     // Update hints
-    displayHints(result.hints || []);
+    displayAnalysisHints(result.hints || []);
     
-    // Show score if available
+    // Show score if available - now using the REAL scoring system structure
     if (result.score) {
+        console.log("🎯 Using REAL score data from analysis:", result.score);
         displayScore(result.score);
     } else {
+        console.log("⚠️ Using fallback score calculation");
         const scoreData = calculateScoreFromMetrics(result.metrics, result.hints || []);
         displayScore(scoreData);
     }
 }
 
-function displayHints(hints) {
+function displayAnalysisHints(hints) {
     const hintsEl = document.getElementById('hintsDisplay');
     hintsEl.innerHTML = '';
     
@@ -485,41 +493,197 @@ function provideFallbackAnalysis() {
         '</div>';
 }
 
+// ========== ANSWER & HINTS MANAGEMENT ==========
+
+function toggleModelAnswer() {
+    const answerSection = document.getElementById('modelAnswerSection');
+    const viewAnswerBtn = document.getElementById('viewAnswerBtn');
+    
+    if (isAnswerVisible) {
+        // Hide answer
+        answerSection.classList.add('hidden');
+        viewAnswerBtn.innerHTML = '💡 View Model Answer';
+        viewAnswerBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200';
+    } else {
+        // Show answer
+        const currentQuestion = questions[currentQuestionIndex];
+        if (currentQuestion && currentQuestion.model_answer) {
+            document.getElementById('modelAnswerContent').innerHTML = `
+                <div class="prose max-w-none">
+                    <div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
+                        <h4 class="font-semibold text-green-800 mb-2">📋 Key Points to Cover:</h4>
+                        <ul class="list-disc list-inside text-green-700 text-sm">
+                            ${currentQuestion.key_points ? currentQuestion.key_points.map(point => `<li>${point}</li>`).join('') : '<li>Clear problem statement</li><li>Your specific actions</li><li>Measurable results</li>'}
+                        </ul>
+                    </div>
+                    <div class="text-gray-800 leading-relaxed">
+                        ${formatAnswerText(currentQuestion.model_answer)}
+                    </div>
+                </div>
+            `;
+        } else {
+            document.getElementById('modelAnswerContent').innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-4xl mb-4">🤔</div>
+                    <p class="text-gray-500">No model answer available for this question.</p>
+                    <p class="text-sm text-gray-400 mt-2">Focus on providing a structured response using the hints provided.</p>
+                </div>
+            `;
+        }
+        answerSection.classList.remove('hidden');
+        viewAnswerBtn.innerHTML = '👁️ Hide Answer';
+        viewAnswerBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200';
+    }
+    
+    isAnswerVisible = !isAnswerVisible;
+}
+
+function formatAnswerText(text) {
+    // Simple formatting for better readability
+    return text.replace(/\n/g, '<br>')
+              .replace(/(Situation|Task|Action|Result):/g, '<strong>$1:</strong>')
+              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+function displayHintsForQuestion(question) {
+    const hintsEl = document.getElementById('hintsDisplay');
+    const hintsCountEl = document.getElementById('hintsCount');
+    
+    if (question.answer_hints && question.answer_hints.length > 0) {
+        hintsEl.innerHTML = '';
+        hintsCountEl.textContent = `${question.answer_hints.length} hints`;
+        
+        question.answer_hints.forEach((hint, index) => {
+            const hintDiv = document.createElement('div');
+            hintDiv.className = 'bg-white p-4 rounded-lg border border-purple-200 flex items-start';
+            hintDiv.innerHTML = `
+                <span class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 flex-shrink-0">${index + 1}</span>
+                <span class="text-gray-700">${hint}</span>
+            `;
+            hintsEl.appendChild(hintDiv);
+        });
+    } else {
+        hintsEl.innerHTML = `
+            <div class="text-center py-8">
+                <div class="text-4xl mb-2">💡</div>
+                <p class="text-gray-500">No specific hints available for this question.</p>
+                <p class="text-sm text-gray-400 mt-1">Focus on being clear and structured in your answer.</p>
+            </div>
+        `;
+        hintsCountEl.textContent = '0 hints';
+    }
+}
+
 // ========== QUESTION MANAGEMENT ==========
 
 async function loadQuestions() {
     try {
         console.log('Loading questions for session:', sessionId);
-        const response = await fetch(`/api/sessions/${sessionId}/questions/`);
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Show loading state
+        document.getElementById('currentQuestion').innerHTML = `
+            <div class="text-center py-8">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-gray-600">Loading questions...</p>
+            </div>
+        `;
+
+        // Try the questions endpoint first
+        let response;
+        try {
+            response = await fetch(`/api/sessions/${sessionId}/questions/`);
+            console.log('Questions endpoint response status:', response.status);
+        } catch (fetchError) {
+            console.log('Questions endpoint not available:', fetchError);
+            response = null;
         }
         
-        const data = await response.json();
-        
-        if (data.questions && Array.isArray(data.questions)) {
-            questions = data.questions;
-        } else if (Array.isArray(data)) {
-            questions = data;
+        if (response && response.ok) {
+            const data = await response.json();
+            questions = data.questions || [];
+            console.log(`✅ Loaded ${questions.length} existing questions`);
         } else {
-            questions = getMockQuestions();
+            // If no questions exist or endpoint fails, generate new ones
+            console.log('No existing questions found, generating new ones...');
+            await generateNewQuestions();
+            return;
         }
         
         if (questions.length > 0) {
             displayQuestion(0);
             createQuestionProgress();
         } else {
-            questions = getMockQuestions();
-            displayQuestion(0);
-            createQuestionProgress();
+            // If questions array is empty, generate new ones
+            await generateNewQuestions();
         }
     } catch (error) {
         console.error('Error loading questions:', error);
-        questions = getMockQuestions();
-        displayQuestion(0);
-        createQuestionProgress();
+        await generateNewQuestions();
     }
+}
+
+async function generateNewQuestions() {
+    try {
+        console.log('Generating new questions for session:', sessionId);
+        
+        // Show loading state
+        document.getElementById('currentQuestion').innerHTML = `
+            <div class="text-center py-8">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-gray-600">AI is generating personalized questions...</p>
+            </div>
+        `;
+
+        const response = await fetch(`/api/sessions/${sessionId}/generate-questions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        questions = data.questions || [];
+        
+        console.log(`✅ Generated ${questions.length} new questions`);
+        
+        if (questions.length > 0) {
+            displayQuestion(0);
+            createQuestionProgress();
+        } else {
+            throw new Error('No questions generated');
+        }
+    } catch (error) {
+        console.error('Error generating new questions:', error);
+        
+        // Show error message
+        const questionContainer = document.getElementById('currentQuestion');
+        questionContainer.innerHTML = `
+            <div class="text-center py-8">
+                <div class="text-4xl mb-4">❌</div>
+                <p class="text-red-600 mb-4">Failed to load questions: ${error.message}</p>
+                <button onclick="generateNewQuestions()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg">
+                    🔄 Try Again
+                </button>
+            </div>
+        `;
+        
+        const hintsEl = document.getElementById('hintsDisplay');
+        hintsEl.innerHTML = `
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <p class="text-red-700">Unable to load questions. Please try again.</p>
+                <p class="text-red-600 text-sm mt-2">Error: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+async function generateMoreQuestions() {
+    await generateNewQuestions();
 }
 
 function displayQuestion(index) {
@@ -527,39 +691,55 @@ function displayQuestion(index) {
     
     if (questions[index]) {
         const question = questions[index];
+        
+        // Use the correct field structure from your AI generator
+        const questionText = question.question || "Question not available";
+        const rationale = question.rationale || "Relevant to your skills and experience";
+        const focus = question.focus || question.skill_type || "general";
+        const targetSkill = question.target_skill || "general";
+        const skillType = question.skill_type || "matched_skill";
+        
+        const skillTypeColor = skillType === 'matched_skill' ? 'green' : 'blue';
+        const skillTypeText = skillType === 'matched_skill' ? 'Matched Skill' : 'Development Area';
+        
         questionContainer.innerHTML = `
             <div class="mb-4">
-                <p class="text-xl font-semibold mb-3 text-gray-800">${question.question}</p>
-                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <p class="text-sm text-blue-700 font-semibold mb-1">🎯 Why we ask this:</p>
-                    <p class="text-sm text-gray-700">${question.rationale || 'Relevant to your skills and experience'}</p>
+                <p class="text-xl font-semibold mb-3 text-gray-800">${questionText}</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-700 font-semibold mb-1">🎯 Focus:</p>
+                        <p class="text-sm text-gray-700 capitalize">${focus.replace('_', ' ')}</p>
+                    </div>
+                    <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                        <p class="text-sm text-green-700 font-semibold mb-1">💡 Target Skill:</p>
+                        <p class="text-sm text-gray-700 capitalize">${targetSkill}</p>
+                    </div>
+                    <div class="bg-${skillTypeColor}-50 p-3 rounded-lg border border-${skillTypeColor}-200">
+                        <p class="text-sm text-${skillTypeColor}-700 font-semibold mb-1">📊 Type:</p>
+                        <p class="text-sm text-gray-700">${skillTypeText}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                    <p class="text-sm text-purple-700 font-semibold mb-1">🤔 Why we ask this:</p>
+                    <p class="text-sm text-gray-700">${rationale}</p>
                 </div>
             </div>
         `;
+        
+        // Display hints for this question
+        displayHintsForQuestion(question);
+        
         currentQuestionIndex = index;
         updateProgressIndicator();
+        
+        // Reset answer panel
+        document.getElementById('modelAnswerSection').classList.add('hidden');
+        document.getElementById('viewAnswerBtn').innerHTML = '💡 View Model Answer';
+        document.getElementById('viewAnswerBtn').className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200';
+        isAnswerVisible = false;
     }
-}
-
-function getMockQuestions() {
-    return [
-        {
-            "question": "Tell me about a time you used Python to solve a complex problem.",
-            "rationale": "This tests your technical Python skills mentioned in your CV."
-        },
-        {
-            "question": "Describe your experience with project management and team leadership.",
-            "rationale": "Your CV shows leadership experience, which matches the job requirements."
-        },
-        {
-            "question": "How do you handle tight deadlines and pressure in projects?",
-            "rationale": "This assesses your time management and stress management skills."
-        },
-        {
-            "question": "Can you walk me through a technical challenge you faced and how you overcame it?",
-            "rationale": "Tests problem-solving abilities and technical depth."
-        }
-    ];
 }
 
 function createQuestionProgress() {
@@ -588,94 +768,7 @@ function updateProgressIndicator() {
     }
 }
 
-// ========== MOCK INTERVIEW FUNCTIONS ==========
-
-function startMockInterview() {
-    if (isPracticeRunning) return;
-    
-    isPracticeRunning = true;
-    document.getElementById('startBtn').classList.add('hidden');
-    document.getElementById('stopBtn').classList.remove('hidden');
-    
-    document.getElementById('transcriptionDisplay').innerHTML = 
-        '<p class="text-gray-500 text-center py-8">Start speaking... transcription will appear here</p>';
-    document.getElementById('hintsDisplay').innerHTML = 
-        '<p class="text-gray-500 text-center py-4">Hints will appear as you practice...</p>';
-    
-    answerTime = 0;
-    document.getElementById('timeDisplay').textContent = '0s';
-    document.getElementById('wpmDisplay').textContent = '--';
-    document.getElementById('fillerDisplay').textContent = '--';
-    document.getElementById('scoreDisplay').classList.add('hidden');
-    
-    const mockAnswers = [
-        "I worked on a Django project where we built a customer portal for a large e-commerce company. The project involved creating a responsive web application that could handle thousands of concurrent users.",
-        "We used Python for the backend API development and React for the frontend interface. The main challenge was optimizing database queries to ensure fast response times during peak traffic hours.",
-        "I led a team of 4 developers and we followed agile methodology with two-week sprints. We implemented user authentication, payment processing, and real-time inventory management features.",
-        "The result was a 30% improvement in customer satisfaction scores and a 25% reduction in page load times. We also decreased server costs by 15% through better resource optimization."
-    ];
-    
-    let currentAnswerIndex = 0;
-    let charIndex = 0;
-    
-    mockInterval = setInterval(() => {
-        if (!isPracticeRunning) return;
-        
-        answerTime++;
-        document.getElementById('timeDisplay').textContent = answerTime + 's';
-        document.getElementById('wpmDisplay').textContent = Math.floor(140 + Math.random() * 40);
-        document.getElementById('fillerDisplay').textContent = Math.floor(Math.random() * 5);
-        
-        if (currentAnswerIndex < mockAnswers.length) {
-            const currentAnswer = mockAnswers[currentAnswerIndex];
-            if (charIndex < currentAnswer.length) {
-                const transcriptionEl = document.getElementById('transcriptionDisplay');
-                transcriptionEl.innerHTML = `<p class="text-gray-800">${currentAnswer.substring(0, charIndex)}</p>`;
-                charIndex += 3;
-            } else {
-                currentAnswerIndex++;
-                charIndex = 0;
-            }
-        }
-        
-        if (answerTime % 10 === 0) {
-            const hints = [
-                "Try to include specific metrics in your answer",
-                "Use the STAR method: Situation, Task, Action, Result", 
-                "Speak a bit slower for better clarity"
-            ];
-            const hint = hints[Math.floor(Math.random() * hints.length)];
-            
-            const hintsEl = document.getElementById('hintsDisplay');
-            if (hintsEl.children.length > 4) {
-                hintsEl.removeChild(hintsEl.firstChild);
-            }
-            
-            const hintItem = document.createElement('div');
-            hintItem.className = 'bg-white p-3 rounded-lg border border-purple-200 text-sm';
-            hintItem.innerHTML = `⏱️ ${answerTime}s: ${hint}`;
-            hintsEl.appendChild(hintItem);
-        }
-        
-    }, 200);
-}
-
-function stopMockInterview() {
-    isPracticeRunning = false;
-    
-    if (mockInterval) {
-        clearInterval(mockInterval);
-    }
-    
-    document.getElementById('startBtn').classList.remove('hidden');
-    document.getElementById('stopBtn').classList.add('hidden');
-    
-    const hintsEl = document.getElementById('hintsDisplay');
-    const stopMessage = document.createElement('div');
-    stopMessage.className = 'bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-sm';
-    stopMessage.innerHTML = '⏹️ Practice stopped. Click "Get Score" to see your results.';
-    hintsEl.appendChild(stopMessage);
-}
+// ========== SCORE & PDF FUNCTIONS ==========
 
 async function getScore() {
     stopMockInterview();
@@ -693,7 +786,8 @@ async function getScore() {
             },
             body: JSON.stringify({
                 session_id: sessionId,
-                transcript_text: transcriptionText || "Mock interview practice answer"
+                transcript_text: transcriptionText || "Mock interview practice answer",
+                question: questions[currentQuestionIndex]?.question || "Current practice question"
             })
         });
         
@@ -725,71 +819,366 @@ function displayScore(scoreData) {
     const scoreDisplay = document.getElementById('scoreDisplay');
     const scoreContent = document.getElementById('scoreContent');
     
-    const overallScore = scoreData.overall_score || 84;
-    const contentScore = scoreData.content_score || 38;
-    const deliveryScore = scoreData.delivery_score || 28;
-    const communicationScore = scoreData.communication_score || 18;
+    // Use REAL score data from your scoring system
+    const overallScore = scoreData.final_score || scoreData.overall_score || 0;
+    const contentScore = scoreData.subscores?.content?.score || scoreData.content_score || 0;
+    const deliveryScore = scoreData.subscores?.delivery?.score || scoreData.delivery_score || 0;
+    const communicationScore = scoreData.subscores?.communication?.score || scoreData.communication_score || 0;
     
+    // Get explanations and next actions from XAI system
+    const explanations = scoreData.explanations || [];
+    const nextActions = scoreData.next_actions || [];
+    
+    // ✅ FIXED: Get LLM explanation and ensure it's not truncated
+    const llmExplanation = scoreData.llm_explanation || '';
+    
+    // ✅ DEBUG: Check what we're receiving
+    console.log("🔍 LLM Explanation DEBUG:");
+    console.log("Full length:", llmExplanation.length);
+    console.log("Full text:", llmExplanation);
+    
+    // ✅ Check if the text is already truncated from the backend
+    if (llmExplanation.includes("it still incomplete") || llmExplanation.length < 50) {
+        console.warn("⚠️ LLM explanation appears to be truncated from backend!");
+    }
+    
+    // ✅ FIXED: Create the LLM explanation section separately to avoid template literal issues
+    let llmExplanationSection = '';
+    if (llmExplanation && llmExplanation.trim() !== '') {
+        // ✅ Force the text to display completely
+        llmExplanationSection = `
+            <div class="bg-gradient-to-br from-indigo-50 to-purple-100 p-6 rounded-xl border-2 border-indigo-200 mb-6" style="overflow: visible;">
+                <div class="flex items-center mb-4">
+                    <div class="bg-indigo-100 p-2 rounded-lg mr-3">
+                        <span class="text-2xl">🤖</span>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-indigo-800">AI Coach Analysis</h4>
+                        <p class="text-sm text-indigo-600">Personalized feedback based on your performance</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border border-indigo-200" style="overflow: visible; max-height: none;">
+                    <p class="text-gray-700 leading-relaxed" style="white-space: normal; overflow: visible; max-height: none; word-wrap: break-word; word-break: break-word;">
+                        ${llmExplanation}
+                    </p>
+                </div>
+                <div class="mt-3 text-xs text-indigo-500 flex items-center">
+                    <span class="mr-2">⚡</span>
+                    Powered by Mistral 7B AI • Generated just for you
+                </div>
+            </div>
+        `;
+    }
+        
+    // ✅ FIXED: Create feature breakdown section separately
+    let featureBreakdownSection = '';
+    if (scoreData.feature_breakdown) {
+        const featureEntries = Object.entries(scoreData.feature_breakdown);
+        let featureHTML = '';
+        
+        featureEntries.forEach(([featureName, featureData]) => {
+            const score = featureData.score || 0;
+            const evidence = featureData.evidence || '';
+            const scorePercent = (score * 100).toFixed(0);
+            
+            const displayName = featureName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            let featureDetails = '';
+            if (featureName === 'star_completeness') {
+                featureDetails = `
+                    <div class="text-xs text-gray-500 flex justify-between">
+                        <span class="${featureData.S ? 'text-green-600' : 'text-red-600'}">S: ${featureData.S ? '✓' : '✗'}</span>
+                        <span class="${featureData.T ? 'text-green-600' : 'text-red-600'}">T: ${featureData.T ? '✓' : '✗'}</span>
+                        <span class="${featureData.A ? 'text-green-600' : 'text-red-600'}">A: ${featureData.A ? '✓' : '✗'}</span>
+                        <span class="${featureData.R ? 'text-green-600' : 'text-red-600'}">R: ${featureData.R ? '✓' : '✗'}</span>
+                    </div>
+                `;
+            } else if (featureName === 'jd_keyword_overlap') {
+                featureDetails = `
+                    <div class="text-xs text-gray-500">
+                        Keywords: ${featureData.matched || 0}/${featureData.total || 0} matched
+                    </div>
+                `;
+            } else if (featureName === 'specificity_metric') {
+                featureDetails = `
+                    <div class="text-xs ${featureData.has_metric ? 'text-green-600' : 'text-red-600'}">
+                        ${featureData.has_metric ? '✅ Used specific metrics' : '❌ No metrics used'}
+                    </div>
+                `;
+            } else if (featureName === 'pace_wpm') {
+                featureDetails = `
+                    <div class="text-xs text-gray-500">
+                        Pace: ${featureData.wpm || 0} WPM
+                    </div>
+                `;
+            } else if (featureName === 'filler_rate') {
+                featureDetails = `
+                    <div class="text-xs text-gray-500">
+                        Fillers: ${featureData.percentage || '0%'}
+                    </div>
+                `;
+            } else if (featureName === 'answer_length') {
+                featureDetails = `
+                    <div class="text-xs text-gray-500">
+                        Duration: ${featureData.duration_s || 0}s
+                    </div>
+                `;
+            }
+            
+            featureHTML += `
+                <div class="bg-white p-3 rounded-lg border border-gray-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <strong class="text-blue-600 text-sm">${displayName}:</strong>
+                        <span class="font-bold text-sm ${score >= 0.7 ? 'text-green-600' : score >= 0.5 ? 'text-yellow-600' : 'text-red-600'}">
+                            ${scorePercent}%
+                        </span>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2">${evidence}</div>
+                    ${featureDetails}
+                </div>
+            `;
+        });
+        
+        featureBreakdownSection = `
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+                    <span class="text-lg">🔍 Detailed Feature Analysis</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    ${featureHTML}
+                </div>
+            </div>
+        `;
+    }
+    
+    // ✅ FIXED: Build the final HTML with all sections
     scoreContent.innerHTML = `
+        <!-- Main Score Card -->
+        <div class="text-center mb-6">
+            <div class="text-5xl font-bold text-gray-800 mb-2">${overallScore}/100</div>
+            <div class="text-xl ${getPerformanceColor(overallScore)} font-semibold mb-4">
+                ${getPerformanceLevel(overallScore)}
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3 max-w-md mx-auto">
+                <div class="bg-green-600 h-3 rounded-full transition-all duration-1000" style="width: ${overallScore}%"></div>
+            </div>
+        </div>
+        
+        <!-- Three Column Scores -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center border border-blue-200">
+                <div class="text-3xl font-bold text-blue-600 mb-1">${contentScore}</div>
+                <div class="text-sm text-blue-800 font-semibold">Content (45%)</div>
+                <div class="text-xs text-gray-600 mt-1">What you said</div>
+            </div>
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center border border-purple-200">
+                <div class="text-3xl font-bold text-purple-600 mb-1">${deliveryScore}</div>
+                <div class="text-sm text-purple-800 font-semibold">Delivery (35%)</div>
+                <div class="text-xs text-gray-600 mt-1">How you said it</div>
+            </div>
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl text-center border border-orange-200">
+                <div class="text-3xl font-bold text-orange-600 mb-1">${communicationScore}</div>
+                <div class="text-sm text-orange-800 font-semibold">Communication (20%)</div>
+                <div class="text-xs text-gray-600 mt-1">How well you explained</div>
+            </div>
+        </div>
+
+        <!-- AI Coach Explanation Section -->
+        ${llmExplanationSection}
+
+        <!-- View Details Button -->
         <div class="text-center mb-4">
-            <div class="text-4xl font-bold text-green-600 mb-2">${overallScore}/100</div>
-            <div class="w-full bg-gray-200 rounded-full h-4">
-                <div class="bg-green-600 h-4 rounded-full transition-all duration-1000" style="width: ${overallScore}%"></div>
-            </div>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div class="bg-blue-50 p-4 rounded-lg text-center">
-                <div class="text-2xl font-bold text-blue-600">${contentScore}</div>
-                <div class="text-sm text-blue-800 font-semibold">Content</div>
-            </div>
-            <div class="bg-purple-50 p-4 rounded-lg text-center">
-                <div class="text-2xl font-bold text-purple-600">${deliveryScore}</div>
-                <div class="text-sm text-purple-800 font-semibold">Delivery</div>
-            </div>
-            <div class="bg-orange-50 p-4 rounded-lg text-center">
-                <div class="text-2xl font-bold text-orange-600">${communicationScore}</div>
-                <div class="text-sm text-orange-800 font-semibold">Communication</div>
-            </div>
-        </div>
-        
-        ${scoreData.feature_contributions ? `
-            <div class="space-y-3">
-                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <strong class="text-green-700">✅ Strengths:</strong>
-                    <ul class="list-disc list-inside mt-1 text-sm text-green-600">
-                        ${scoreData.feature_contributions.positive ? scoreData.feature_contributions.positive.map(item => `<li>${item}</li>`).join('') : '<li>Good overall performance</li>'}
-                    </ul>
-                </div>
-                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                    <strong class="text-yellow-700">💡 Improvements:</strong>
-                    <ul class="list-disc list-inside mt-1 text-sm text-yellow-600">
-                        ${scoreData.feature_contributions.negative ? scoreData.feature_contributions.negative.map(item => `<li>${item}</li>`).join('') : '<li>Continue practicing for better results</li>'}
-                    </ul>
-                </div>
-            </div>
-        ` : ''}
-        
-        <div class="text-center mt-4">
-            <button onclick="goToDetailedResults()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
-                📊 View Detailed Analysis
+            <button onclick="toggleScoreDetails()" id="viewDetailsBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 flex items-center justify-center mx-auto">
+                <span>📊 View Technical Breakdown</span>
+                <svg id="detailsArrow" class="w-4 h-4 ml-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
             </button>
         </div>
+
+        <!-- Collapsible Details Section -->
+        <div id="scoreDetails" class="hidden space-y-4">
+            <!-- Performance Analysis -->
+            ${explanations.length > 0 ? `
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                        <span class="text-lg">📊 Technical Analysis</span>
+                    </h4>
+                    <ul class="space-y-2">
+                        ${explanations.map(exp => `
+                            <li class="text-sm text-gray-700 flex items-start">
+                                <span class="mr-2 flex-shrink-0 mt-0.5">•</span>
+                                <span>${exp}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+            <!-- Recommended Next Steps -->
+            ${nextActions.length > 0 ? `
+                <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <h4 class="font-semibold text-yellow-800 mb-3 flex items-center">
+                        <span class="text-lg">💡 Recommended Next Steps</span>
+                    </h4>
+                    <ul class="space-y-2">
+                        ${nextActions.map(action => `
+                            <li class="text-sm text-yellow-700 flex items-start">
+                                <span class="mr-2 flex-shrink-0 mt-0.5">🎯</span>
+                                <span>${action}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+            <!-- Detailed Feature Analysis -->
+            ${scoreData.feature_breakdown ? `
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+                        <span class="text-lg">🔍 Detailed Feature Analysis</span>
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${Object.entries(scoreData.feature_breakdown).map(([featureName, featureData]) => {
+                            const score = featureData.score || 0;
+                            const evidence = featureData.evidence || '';
+                            const scorePercent = (score * 100).toFixed(0);
+                            
+                            const displayName = featureName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            
+                            return `
+                                <div class="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <strong class="text-blue-600 text-sm">${displayName}:</strong>
+                                        <span class="font-bold text-sm ${score >= 0.7 ? 'text-green-600' : score >= 0.5 ? 'text-yellow-600' : 'text-red-600'}">
+                                            ${scorePercent}%
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-600 mb-2">${evidence}</div>
+                                    ${featureName === 'star_completeness' ? `
+                                        <div class="text-xs text-gray-500 flex justify-between">
+                                            <span class="${featureData.S ? 'text-green-600' : 'text-red-600'}">S: ${featureData.S ? '✓' : '✗'}</span>
+                                            <span class="${featureData.T ? 'text-green-600' : 'text-red-600'}">T: ${featureData.T ? '✓' : '✗'}</span>
+                                            <span class="${featureData.A ? 'text-green-600' : 'text-red-600'}">A: ${featureData.A ? '✓' : '✗'}</span>
+                                            <span class="${featureData.R ? 'text-green-600' : 'text-red-600'}">R: ${featureData.R ? '✓' : '✗'}</span>
+                                        </div>
+                                    ` : ''}
+                                    ${featureName === 'jd_keyword_overlap' ? `
+                                        <div class="text-xs text-gray-500">
+                                            Keywords: ${featureData.matched || 0}/${featureData.total || 0} matched
+                                        </div>
+                                    ` : ''}
+                                    ${featureName === 'specificity_metric' ? `
+                                        <div class="text-xs ${featureData.has_metric ? 'text-green-600' : 'text-red-600'}">
+                                            ${featureData.has_metric ? '✅ Used specific metrics' : '❌ No metrics used'}
+                                        </div>
+                                    ` : ''}
+                                    ${featureName === 'pace_wpm' ? `
+                                        <div class="text-xs text-gray-500">
+                                            Pace: ${featureData.wpm || 0} WPM
+                                        </div>
+                                    ` : ''}
+                                    ${featureName === 'filler_rate' ? `
+                                        <div class="text-xs text-gray-500">
+                                            Fillers: ${featureData.percentage || '0%'}
+                                        </div>
+                                    ` : ''}
+                                    ${featureName === 'answer_length' ? `
+                                        <div class="text-xs text-gray-500">
+                                            Duration: ${featureData.duration_s || 0}s
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+
     `;
     
     scoreDisplay.classList.remove('hidden');
     scoreDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    console.log("✅ Score display updated with LLM explanation");
 }
 
-function goToDetailedResults() {
-    window.location.href = `/results/${sessionId}/`;
+// Add these helper functions
+function getPerformanceLevel(score) {
+    if (score >= 85) return "🌟 Excellent Performance - Interview Ready!";
+    if (score >= 70) return "👍 Strong Performance - Well Prepared";
+    if (score >= 55) return "📈 Developing Performance - Good Foundation";
+    return "💪 Needs Practice - Keep Working on Skills";
+}
+
+function getPerformanceColor(score) {
+    if (score >= 85) return "text-green-600";
+    if (score >= 70) return "text-blue-600";
+    if (score >= 55) return "text-yellow-600";
+    return "text-red-600";
+}
+
+// Toggle function for the details section
+function toggleScoreDetails() {
+    const detailsSection = document.getElementById('scoreDetails');
+    const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+    const detailsArrow = document.getElementById('detailsArrow');
+    
+    if (detailsSection.classList.contains('hidden')) {
+        // Show details
+        detailsSection.classList.remove('hidden');
+        viewDetailsBtn.innerHTML = '<span>👆 Hide Details</span><svg id="detailsArrow" class="w-4 h-4 ml-2 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+        viewDetailsBtn.className = 'bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-6 rounded-lg transition duration-200 flex items-center justify-center mx-auto';
+    } else {
+        // Hide details
+        detailsSection.classList.add('hidden');
+        viewDetailsBtn.innerHTML = '<span>📊 View More Details</span><svg id="detailsArrow" class="w-4 h-4 ml-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+        viewDetailsBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 flex items-center justify-center mx-auto';
+    }
+}
+
+// In practice.html - UPDATE the generatePDFReport function
+
+async function generatePDFReport() {
+    try {
+        const response = await fetch(`/api/sessions/${sessionId}/report/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.pdf_url) {
+                // Open PDF in new tab
+                window.open(data.pdf_url, '_blank');
+            } else if (data.download_url) {
+                window.open(data.download_url, '_blank');
+            } else {
+                alert('PDF report generated! Check your downloads.');
+            }
+        } else {
+            throw new Error('PDF generation failed');
+        }
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF report: ' + error.message);
+        
+        // Fallback: try direct PDF generation
+        window.open(`/api/generate-real-pdf/${sessionId}/`, '_blank');
+    }
 }
 
 function calculateScoreFromMetrics(metrics, hints) {
+    // This is now a proper fallback that matches your scoring system structure
     const wpm = metrics?.wpm || 140;
     const wordCount = metrics?.word_count || 0;
     const fillerPct = metrics?.filler_pct || 0;
     
+    // Calculate scores based on actual metrics
     let contentScore = Math.min(100, (wordCount / 50) * 100);
     let wpmScore = 70;
     if (wpm >= 120 && wpm <= 160) wpmScore = 90;
@@ -799,27 +1188,157 @@ function calculateScoreFromMetrics(metrics, hints) {
     let deliveryScore = Math.round((wpmScore + fillerScore) / 2);
     let communicationScore = 70;
     
-    const overallScore = Math.round((contentScore + deliveryScore + communicationScore) / 3);
+    const overallScore = Math.round((contentScore * 0.45) + (deliveryScore * 0.35) + (communicationScore * 0.20));
     
     return {
-        overall_score: overallScore,
-        content_score: Math.round(contentScore),
-        delivery_score: deliveryScore,
-        communication_score: communicationScore,
-        feature_contributions: {
-            positive: ["Good recording quality", "Clear speech patterns"],
-            negative: ["Continue practicing for improvement"]
-        }
+        final_score: overallScore,
+        subscores: {
+            content: { score: Math.round(contentScore), weight: 0.45 },
+            delivery: { score: deliveryScore, weight: 0.35 },
+            communication: { score: communicationScore, weight: 0.20 }
+        },
+        explanations: [
+            "Good content structure detected",
+            "Speaking pace is appropriate",
+            "Clear communication style"
+        ],
+        next_actions: [
+            "Practice with more technical questions",
+            "Work on reducing filler words",
+            "Include more specific metrics in answers"
+        ],
+        // ✅ NEW: Mock LLM explanation for fallback
+        llm_explanation: "Solid performance! Your answer showed good structure and clarity. The speaking pace was appropriate for an interview setting. To improve further, try incorporating more specific metrics and technical details relevant to the question. Keep practicing - you're building strong interview skills!"
     };
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("🎯 Practice page loaded");
-    loadQuestions();
-});
+// ========== MOCK INTERVIEW FUNCTIONS ==========
 
-// Define analyzeRecording function (was missing in original code)
+function startMockInterview() {
+    if (isPracticeRunning) return;
+    
+    isPracticeRunning = true;
+    document.getElementById('startBtn').classList.add('hidden');
+    document.getElementById('stopBtn').classList.remove('hidden');
+    
+    document.getElementById('transcriptionDisplay').innerHTML = 
+        '<p class="text-gray-500 text-center py-8">Start speaking... transcription will appear here</p>';
+    
+    answerTime = 0;
+    document.getElementById('timeDisplay').textContent = '0s';
+    document.getElementById('wpmDisplay').textContent = '--';
+    document.getElementById('fillerDisplay').textContent = '--';
+    document.getElementById('scoreDisplay').classList.add('hidden');
+    
+    // Dynamic answer generation based on current question
+    let currentAnswer = "";
+    let charIndex = 0;
+    
+    mockInterval = setInterval(() => {
+        if (!isPracticeRunning) return;
+        
+        answerTime++;
+        document.getElementById('timeDisplay').textContent = answerTime + 's';
+        document.getElementById('wpmDisplay').textContent = Math.floor(140 + Math.random() * 40);
+        document.getElementById('fillerDisplay').textContent = Math.floor(Math.random() * 5);
+        
+        // Generate dynamic answer based on current question
+        if (charIndex === 0 && questions[currentQuestionIndex]) {
+            const currentQ = questions[currentQuestionIndex];
+            currentAnswer = generateDynamicAnswer(currentQ);
+        }
+        
+        if (charIndex < currentAnswer.length) {
+            const transcriptionEl = document.getElementById('transcriptionDisplay');
+            transcriptionEl.innerHTML = `<p class="text-gray-800">${currentAnswer.substring(0, charIndex)}</p>`;
+            charIndex += 3;
+        } else if (answerTime > 30) {
+            // Reset for new "answer" after 30 seconds
+            charIndex = 0;
+            currentAnswer = "";
+        }
+        
+        if (answerTime % 10 === 0) {
+            const hints = [
+                "Try to include specific metrics in your answer",
+                "Use the STAR method: Situation, Task, Action, Result", 
+                "Speak a bit slower for better clarity",
+                "Connect your answer back to the job requirements",
+                "Include technical details relevant to the question"
+            ];
+            const hint = hints[Math.floor(Math.random() * hints.length)];
+            
+            const hintsEl = document.getElementById('hintsDisplay');
+            if (hintsEl.children.length > 4) {
+                hintsEl.removeChild(hintsEl.firstChild);
+            }
+            
+            const hintItem = document.createElement('div');
+            hintItem.className = 'bg-white p-3 rounded-lg border border-purple-200 text-sm';
+            hintItem.innerHTML = `⏱️ ${answerTime}s: ${hint}`;
+            hintsEl.appendChild(hintItem);
+        }
+        
+    }, 200);
+}
+
+function generateDynamicAnswer(question) {
+    const focus = question.focus || 'general';
+    const targetSkill = question.target_skill || 'general';
+    
+    const answerTemplates = {
+        'technical_python': `In my previous role, I used Python to develop a scalable data processing system. The situation required handling large datasets efficiently. I implemented a solution using pandas and asyncio that improved processing speed by 60%. The result was significantly reduced latency and better user experience.`,
+        'technical_django': `For a recent Django project, I architected a REST API that served millions of requests. The challenge was optimizing database queries and implementing caching. I used Django REST Framework with Redis caching, which reduced response times by 40% and improved scalability.`,
+        'behavioral': `I recall a situation where our team faced a critical deadline. My task was to coordinate the development efforts and ensure timely delivery. I implemented agile methodologies and daily standups, which helped us deliver the project 2 days ahead of schedule with all requirements met.`,
+        'situational': `If faced with that scenario, I would first analyze the requirements and constraints. Then I'd research best practices and create a proof of concept. Based on the results, I'd implement a scalable solution using appropriate technologies, ensuring maintainability and performance.`,
+        'general': `Based on my experience, I would approach this by first understanding the core requirements. Then I'd leverage my technical skills to design an efficient solution. I believe in continuous testing and iteration to ensure the best outcomes for any project.`
+    };
+    
+    return answerTemplates[focus] || answerTemplates.general;
+}
+
+function stopMockInterview() {
+    isPracticeRunning = false;
+    
+    if (mockInterval) {
+        clearInterval(mockInterval);
+    }
+    
+    document.getElementById('startBtn').classList.remove('hidden');
+    document.getElementById('stopBtn').classList.add('hidden');
+    
+    const hintsEl = document.getElementById('hintsDisplay');
+    const stopMessage = document.createElement('div');
+    stopMessage.className = 'bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-sm';
+    stopMessage.innerHTML = '⏹️ Practice stopped. Click "Get Score" to see your results.';
+    hintsEl.appendChild(stopMessage);
+}
+
+// ========== DEBUG FUNCTION ==========
+
+function safeDebug() {
+    console.log("🔍 DEBUG: Current questions state:");
+    console.log("Total questions:", questions.length);
+    console.log("Current question index:", currentQuestionIndex);
+    
+    if (questions.length > 0) {
+        questions.forEach((q, index) => {
+            console.log(`--- Question ${index + 1} ---`);
+            console.log(`Question:`, q.question);
+            console.log(`Focus:`, q.focus);
+            console.log(`Target Skill:`, q.target_skill);
+            console.log(`Skill Type:`, q.skill_type);
+            console.log(`Rationale:`, q.rationale);
+            console.log(`Has Model Answer:`, !!q.model_answer);
+            console.log(`Answer Hints Count:`, q.answer_hints ? q.answer_hints.length : 0);
+            console.log(`Key Points Count:`, q.key_points ? q.key_points.length : 0);
+        });
+    } else {
+        console.log("❌ No questions loaded in the array");
+    }
+}
+
+// Define analyzeRecording function
 async function analyzeRecording() {
     if (audioChunks.length === 0) {
         showMessage('No recording available to analyze.', 'red');
@@ -829,5 +1348,64 @@ async function analyzeRecording() {
     const audioBlob = new Blob(audioChunks, { type: getSupportedMimeType() });
     await analyzeAudio(audioBlob);
 }
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🎯 Practice page loaded with separate sections");
+    loadQuestions();
+});
 </script>
+
+<style>
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.prose {
+    max-width: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ✅ NEW: Fix for LLM explanation text cutoff */
+.bg-white.p-4.rounded-lg.border.border-indigo-200 {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow: visible !important;
+    max-height: none !important;
+}
+
+.text-gray-700.leading-relaxed {
+    white-space: normal !important;
+    overflow: visible !important;
+    max-height: none !important;
+    word-break: break-word !important;
+}
+
+/* Ensure the LLM explanation container doesn't clip content */
+.bg-gradient-to-br.from-indigo-50.to-purple-100 {
+    overflow: visible !important;
+}
+
+/* Additional fix for any text truncation */
+.llm-text-fix {
+    white-space: normal !important;
+    overflow: visible !important;
+    max-height: none !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+}
+</style>
 {% endblock %}

@@ -28,5 +28,17 @@ pdf2image
 pytesseract 
 pdfplumber 
 Pillow
+openai
+accelerate
+bitsandbytes
+langchain_community
+langchain
+langchain-text-splitters
+langchain_google_genai
+langchain-classic
+django-environ
+librosa
+#pip install --upgrade langchain langchain-classic langchain-core langchain-text-splitters langchain-community
+
 #python -c "import nltk; nltk.download('punkt')"
 # python -m spacy download en_core_web_sm

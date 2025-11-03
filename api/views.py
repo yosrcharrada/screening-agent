@@ -62,15 +62,167 @@ from .models import InterviewSession, QuestionSet
 from .analysis import dynamic_skill_analyzer
 from .question_generator import ai_question_generator
 
-# Add this view function to views.py
 
-# Add this to views.py for debugging
-# Add to your existing views.py imports
 from .cv_analyzer import cv_analyzer
 import json
+# Add to your existing views.py
 
-# Add these new views to your existing views.py
-# Add this to your views.py
+from .xai_question_generator import xai_question_generator
+
+# In views.py - update the generate_questions_with_xai function
+
+@api_view(['POST'])
+def generate_questions_with_xai(request, session_id):
+    """Generate questions with XAI explanations"""
+    try:
+        session = InterviewSession.objects.get(pk=session_id)
+
+        # Perform skill gap analysis
+        skill_gap_analysis = dynamic_skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
+        
+        logger.info(f"🔍 XAI Skill Gap Analysis for session {session_id}:")
+        logger.info(f"   Matched skills: {[s['skill'] if isinstance(s, dict) else s for s in skill_gap_analysis.get('matched_skills', [])]}")
+        logger.info(f"   Missing skills: {[s['skill'] if isinstance(s, dict) else s for s in skill_gap_analysis.get('missing_skills', [])]}")
+
+        # Generate questions with XAI
+        result = xai_question_generator.generate_interview_questions_with_xai(
+            session.cv_text,
+            session.jd_text,
+            skill_gap_analysis,
+            num_questions=6
+        )
+
+        questions = result["questions"]
+        xai_report = result["xai_report"]
+
+        # TEMPORARY FIX: Store XAI data in session instead of QuestionSet
+        # Save question set (without metadata for now)
+        question_set = QuestionSet.objects.create(
+            session=session, 
+            questions=questions
+            # Remove metadata parameter until model is updated
+        )
+
+        # Store XAI data in session's analysis_data
+        if not session.analysis_data:
+            session.analysis_data = {}
+        
+        session.analysis_data['xai_report'] = xai_report
+        session.analysis_data['question_set_id'] = question_set.id
+        session.analysis_data['generation_method'] = "xai_enhanced"
+        session.analysis_data['judge_score'] = xai_report["quality_assurance"].get("overall_score", 0)
+        session.save()
+
+        logger.info(f"✅ XAI generation completed. Judge score: {xai_report['quality_assurance'].get('overall_score', 0)}")
+
+        return Response({
+            "session_id": session_id,
+            "questions": questions,
+            "xai_report": xai_report,
+            "total_questions": len(questions),
+            "generation_method": "xai_enhanced_with_judge",
+            "quality_score": xai_report["quality_assurance"].get("overall_score", 0)
+        })
+
+    except InterviewSession.DoesNotExist:
+        logger.error(f"❌ Session not found: {session_id}")
+        return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"❌ XAI question generation failed for session {session_id}: {str(e)}")
+        return Response({"error": f"XAI question generation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_xai_explanations(request, session_id):
+    """Get XAI explanations for generated questions"""
+    try:
+        session = InterviewSession.objects.get(pk=session_id)
+        
+        # Check if XAI data exists in session analysis_data
+        xai_report = None
+        if session.analysis_data and isinstance(session.analysis_data, dict):
+            xai_report = session.analysis_data.get('xai_report')
+        
+        if not xai_report:
+            logger.info(f"ℹ️ No XAI report found for session {session_id}")
+            return Response({
+                "session_id": session_id,
+                "xai_available": False,
+                "message": "No AI explanations available. Questions were generated using standard method.",
+                "questions": []  # Return empty to avoid frontend errors
+            })
+
+        # Get the latest question set for this session
+        question_set = QuestionSet.objects.filter(session_id=session_id).order_by('-created_at').first()
+        
+        if not question_set:
+            return Response({"error": "No questions found for this session"}, status=404)
+
+        # Generate visualization data
+        try:
+            visualization_data = xai_question_generator.generate_explanation_visualization(xai_report)
+            viz_data = json.loads(visualization_data)
+        except Exception as e:
+            logger.warning(f"Visualization generation failed: {e}")
+            viz_data = {}
+
+        return Response({
+            "session_id": session_id,
+            "xai_report": xai_report,
+            "visualization_data": viz_data,
+            "questions": question_set.questions,
+            "quality_score": session.analysis_data.get('judge_score', 0),
+            "xai_available": True
+        })
+
+    except InterviewSession.DoesNotExist:
+        return Response({"error": "Session not found"}, status=404)
+    except Exception as e:
+        logger.error(f"❌ Error getting XAI explanations: {e}")
+        return Response({
+            "error": str(e),
+            "xai_available": False
+        }, status=500)
+
+
+@api_view(['POST'])
+def judge_questions_manual(request, session_id):
+    """Manual trigger for LLM judge evaluation"""
+    try:
+        session = InterviewSession.objects.get(pk=session_id)
+        question_set = QuestionSet.objects.filter(session_id=session_id).order_by('-created_at').first()
+        
+        if not question_set:
+            return Response({"error": "No questions found for this session"}, status=404)
+
+        skill_gap_analysis = dynamic_skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
+        
+        # Run judge evaluation
+        judge_evaluation = xai_question_generator._llm_judge_questions(
+            question_set.questions,
+            session.cv_text,
+            session.jd_text,
+            skill_gap_analysis
+        )
+
+        # Update question set metadata
+        if not question_set.metadata:
+            question_set.metadata = {}
+        
+        question_set.metadata['judge_evaluation'] = judge_evaluation
+        question_set.metadata['last_judged_at'] = timezone.now().isoformat()
+        question_set.save()
+
+        return Response({
+            "session_id": session_id,
+            "judge_evaluation": judge_evaluation,
+            "overall_score": judge_evaluation.get('overall_score', 0)
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Manual judge evaluation failed: {e}")
+        return Response({"error": str(e)}, status=500)
+
 def cv_analysis_page(request):
     """Render the CV analysis page"""
     return render(request, 'cv_analysis.html')
@@ -241,6 +393,7 @@ def get_cv_analysis_report(request, session_id):
         return Response({"error": "Session not found"}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
 @api_view(['GET'])
 def debug_questions(request, session_id):
     """Debug endpoint to check question structure"""
@@ -281,12 +434,15 @@ def practice_view(request, session_id):
 def get_session_questions(request, session_id):
     """Get questions for a session, generate if they don't exist"""
     try:
+        logger.info(f"📋 Getting questions for session {session_id}")
         session = InterviewSession.objects.get(pk=session_id)
         
         # Check if questions already exist
         question_set = QuestionSet.objects.filter(session=session).order_by('-created_at').first()
         
         if not question_set:
+            logger.info(f"🔄 No questions found for session {session_id}, generating now...")
+            
             # Generate questions if they don't exist
             skill_gap_analysis = dynamic_skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
             
@@ -298,18 +454,23 @@ def get_session_questions(request, session_id):
             )
             
             question_set = QuestionSet.objects.create(session=session, questions=questions)
+            logger.info(f"✅ Generated {len(questions)} questions for session {session_id}")
+        else:
+            logger.info(f"✅ Found existing {len(question_set.questions)} questions for session {session_id}")
         
         return Response({
             "questions": question_set.questions,
             "total_questions": len(question_set.questions),
-            "session_id": session_id
+            "session_id": session_id,
+            "auto_generated": not question_set.created_at  # Indicate if questions were just generated
         })
         
     except InterviewSession.DoesNotExist:
+        logger.error(f"❌ Session {session_id} not found")
         return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        logger.error(f"❌ Error getting questions for session {session_id}: {str(e)}")
+        return Response({"error": f"Failed to get questions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['POST'])
 def generate_more_questions(request, session_id):
     """Generate additional questions for practice"""
@@ -345,11 +506,8 @@ def init_ai_models():
     # Any necessary environment setup can go here
     return
 
-# In views.py, update the generate_questions function
-
 # In views.py - Update the generate_questions function
 
-# In views.py - Temporary fix
 @api_view(['POST'])
 @csrf_exempt
 def generate_questions(request, session_id):
@@ -359,37 +517,60 @@ def generate_questions(request, session_id):
         # Perform skill gap analysis
         skill_gap_analysis = dynamic_skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
         
-        # Debug: Log skill gap analysis
         logger.info(f"🔍 Skill Gap Analysis for session {session_id}:")
         logger.info(f"   Matched skills: {[s['skill'] if isinstance(s, dict) else s for s in skill_gap_analysis.get('matched_skills', [])]}")
         logger.info(f"   Missing skills: {[s['skill'] if isinstance(s, dict) else s for s in skill_gap_analysis.get('missing_skills', [])]}")
 
-        # TEMPORARY FIX: Use the original method name
-        # Generate interview questions using AI module
-        questions = ai_question_generator.generate_interview_questions(
+        # Use XAI-enhanced generation (with fallback)
+        result = ai_question_generator.generate_interview_questions_with_xai(
             session.cv_text,
             session.jd_text,
             skill_gap_analysis,
             num_questions=6
         )
 
+        questions = result["questions"]
+        xai_report = result.get("xai_report")
+        generation_method = result["generation_metadata"]["generation_method"]
+
         # Debug: Log the final questions structure
         logger.info(f"📦 Final questions structure for session {session_id}:")
+        logger.info(f"   Generation method: {generation_method}")
         for i, q in enumerate(questions):
             logger.info(f"   Q{i+1}: {q.get('question', 'No question')[:50]}...")
             logger.info(f"      Has answer: {'Yes' if q.get('model_answer') else 'No'}")
             logger.info(f"      Hints count: {len(q.get('answer_hints', []))}")
             logger.info(f"      Key points count: {len(q.get('key_points', []))}")
 
-        # Save question set
-        question_set = QuestionSet.objects.create(session=session, questions=questions)
+        # Save question set with metadata
+        question_set = QuestionSet.objects.create(
+            session=session, 
+            questions=questions,
+            metadata={
+                "xai_report": xai_report,
+                "generation_method": generation_method,
+                "judge_score": xai_report["quality_assurance"].get("overall_score", 0) if xai_report else None
+            }
+        )
 
-        return Response({
+        response_data = {
             "session_id": session_id,
             "questions": questions,
             "total_questions": len(questions),
-            "generation_method": "ai_powered_with_answers"
-        })
+            "generation_method": generation_method
+        }
+
+        # Add XAI data if available
+        if xai_report:
+            response_data.update({
+                "xai_available": True,
+                "quality_score": xai_report["quality_assurance"].get("overall_score", 0),
+                "confidence_score": xai_report["confidence_metrics"]["generation_confidence"]
+            })
+        else:
+            response_data["xai_available"] = False
+
+        return Response(response_data)
 
     except InterviewSession.DoesNotExist:
         logger.error(f"❌ Session not found: {session_id}")

@@ -38,6 +38,7 @@ langchain_google_genai
 langchain-classic
 django-environ
 librosa
+shap
 #pip install --upgrade langchain langchain-classic langchain-core langchain-text-splitters langchain-community
 
 #python -c "import nltk; nltk.download('punkt')"

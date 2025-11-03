@@ -84,13 +84,14 @@
     <!-- Action Buttons -->
    <!-- In skill_gap.html, replace the question generation section -->
 <div class="text-center mt-12 space-y-4">
-    <a href="/practice/{{ session_id }}/" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-xl transition duration-200 text-lg shadow-lg inline-block">
-        🎯 Start Practice Session
-    </a>
+    <button onclick="generateQuestionsWithXAI()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+                🤖 Start Practice Session
+    </button>
     <br>
     <a href="/upload/" class="inline-block bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition duration-200">
         ↩️ Upload Different Documents
     </a>
+    <br>
 </div>
 
 <!-- Remove the entire questionsSection div from skill_gap.html -->
@@ -101,6 +102,47 @@
 <script>
 const sessionId = {{ session_id }};
 
+async function generateQuestionsWithXAI() {
+    try {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '⏳ Generating AI Questions...';
+        button.disabled = true;
+
+        console.log("🚀 Starting XAI question generation for session:", sessionId);
+
+        // Call the XAI generation endpoint
+        const response = await fetch(`/api/sessions/${sessionId}/generate-questions-xai/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ XAI questions generated:", data);
+
+        // Show success message and redirect
+        alert(`✅ AI questions generated successfully!\nQuality Score: ${data.quality_score || 'N/A'}/100\n\nRedirecting to practice session...`);
+        
+        // Redirect to practice page after successful generation
+        window.location.href = `/practice/${sessionId}/`;
+
+    } catch (error) {
+        console.error('❌ XAI question generation failed:', error);
+        
+        // Show error but still redirect to practice (with fallback questions)
+        alert(`❌ AI generation failed: ${error.message}\n\nUsing standard questions instead.`);
+        
+        // Fallback: redirect to practice page anyway
+        window.location.href = `/practice/${sessionId}/`;
+    }
+}
 // Get CSRF token safely - only ONE function with proper null checking
 function getCSRFToken() {
     // Method 1: Try to get from hidden input

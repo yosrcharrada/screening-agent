@@ -22,13 +22,18 @@ class SkillMatchResult(models.Model):
     def __str__(self):
         return f"Skills for Session {self.session.id}"
 
+# In your models.py - update the QuestionSet model
+
 class QuestionSet(models.Model):
     session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)
-    questions = models.JSONField(default=list)
+    questions = models.JSONField()  # Stores the list of questions
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
+    # Add metadata field for XAI data
+    metadata = models.JSONField(default=dict, blank=True, null=True)  # ADD THIS LINE
+    
     def __str__(self):
-        return f"Questions for Session {self.session.id}"
+        return f"QuestionSet for Session {self.session.id} - {self.created_at}"
 
 class Transcript(models.Model):
     session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)

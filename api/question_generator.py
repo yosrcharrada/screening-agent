@@ -30,7 +30,45 @@ class AIQuestionGenerator:
             google_api_key=self.api_key
         )
         logger.info("✅ Models initialized successfully")
+    
+    # Add to your existing AIQuestionGenerator class in question_generator.py
 
+def generate_interview_questions_with_xai(self, cv_text, jd_text, skill_gap_analysis, num_questions=6):
+    """
+    XAI-enhanced question generation with backward compatibility
+    Falls back to original method if XAI is not available
+    """
+    try:
+        # Try to use XAI generator if available
+        from .xai_question_generator import xai_question_generator
+        logger.info("🎯 Using XAI-enhanced question generation")
+        
+        result = xai_question_generator.generate_interview_questions_with_xai(
+            cv_text, jd_text, skill_gap_analysis, num_questions
+        )
+        return result
+        
+    except ImportError:
+        logger.warning("⚠️ XAI generator not available, falling back to standard generation")
+        # Fall back to original method
+        return {
+            "questions": self.generate_interview_questions_with_answers(cv_text, jd_text, skill_gap_analysis, num_questions),
+            "xai_report": None,
+            "generation_metadata": {
+                "total_questions": num_questions,
+                "generation_method": "standard_fallback"
+            }
+        }
+    except Exception as e:
+        logger.error(f"❌ XAI generation failed, using fallback: {e}")
+        return {
+            "questions": self.generate_interview_questions_with_answers(cv_text, jd_text, skill_gap_analysis, num_questions),
+            "xai_report": None,
+            "generation_metadata": {
+                "total_questions": num_questions,
+                "generation_method": "error_fallback"
+            }
+        }
     def process_pdf(self, file_path):
         logger.info(f"📄 Loading and splitting PDF from {file_path}")
         loader = PyPDFLoader(file_path)

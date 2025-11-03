@@ -103,10 +103,34 @@
         </div>
         <div id="recordingStatus" class="text-center mt-4 text-gray-600">Ready to record your answer</div>
     </div>
+    <!-- Add this section after the Current Question & Answer Section in practice.html -->
+
+<!-- XAI Explanations Panel -->
+<div id="xaiPanel" class="hidden bg-blue-50 rounded-2xl p-6 border-2 border-blue-200 mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-2xl font-semibold text-blue-800">🔍 AI Explanation</h3>
+        <div class="flex items-center space-x-4">
+            <span id="qualityScore" class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                Quality: --
+            </span>
+            <button onclick="toggleXAI()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm">
+                ❌ Hide
+            </button>
+        </div>
+    </div>
+    
+    <div id="xaiContent" class="space-y-4">
+        <!-- XAI content will be loaded here -->
+    </div>
+</div>
+
 
     <!-- Practice Controls -->
     <div class="flex justify-center space-x-4 mb-8 flex-wrap gap-2">
-        <button onclick="startMockInterview()" id="startBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+         <button onclick="toggleXAI()" id="showXAIBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+        🔍 Show AI Explanations
+    </button>
+     <button onclick="startMockInterview()" id="startBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
             ▶️ Start Practice
         </button>
         <button onclick="stopMockInterview()" id="stopBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg hidden">
@@ -115,19 +139,17 @@
         <button onclick="generateMoreQuestions()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
             🔄 New Questions
         </button>
+        
+
         <button onclick="getScore()" id="getScoreBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
             📊 Get Score
         </button>
         <a href="/skill-gap/{{ session_id }}/" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg">
             ↩️ Back to Skills
         </a>
+        
     </div>
-    <!-- Add this to your practice controls section in practice.html -->
-<div class="text-center mb-4">
-    <button onclick="safeDebug()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm">
-        🐛 Debug Questions
-    </button>
-</div>
+
 
     <!-- Question Navigation -->
     <div class="bg-gray-50 rounded-xl p-6 text-center">
@@ -137,6 +159,44 @@
         </div>
     </div>
 </div>
+
+<!-- Add this debug section at the bottom of practice.html (before closing scripts) -->
+<script>
+// Debug function to check XAI status
+function debugXAI() {
+    console.log("🔍 XAI DEBUG INFO:");
+    console.log("Session ID:", sessionId);
+    console.log("XAI Data:", xaiData);
+    console.log("XAI Available:", xaiData?.xai_available);
+    console.log("XAI Report:", xaiData?.xai_report);
+    console.log("Questions count:", questions.length);
+    console.log("Current question index:", currentQuestionIndex);
+    
+    // Show debug info in alert
+    let debugInfo = `XAI Status: ${xaiData?.xai_available ? 'Available' : 'Not Available'}\n`;
+    debugInfo += `Session: ${sessionId}\n`;
+    debugInfo += `Questions: ${questions.length}\n`;
+    debugInfo += `XAI Endpoint: /api/sessions/${sessionId}/xai-explanations/`;
+    
+    alert(debugInfo);
+}
+
+// Update your existing debug button
+function safeDebug() {
+    console.log("🔍 DEBUG: Current questions and XAI state:");
+    console.log("Total questions:", questions.length);
+    console.log("XAI data available:", !!xaiData);
+    console.log("XAI report:", xaiData?.xai_report);
+    
+    if (xaiData?.xai_report) {
+        console.log("Judge overall score:", xaiData.xai_report.quality_assurance.overall_score);
+        console.log("Confidence metrics:", xaiData.xai_report.confidence_metrics);
+    }
+    
+    // Also call XAI debug
+    debugXAI();
+}   
+</script>
 
 <script>
 // Global variables
@@ -155,6 +215,333 @@ let isRecording = false;
 let recordingStartTime = 0;
 let recordingTimer = null;
 let currentAnalysisResult = null;
+
+// ========== XAI EXPLANATION FUNCTIONS ==========
+
+// ========== XAI EXPLANATION FUNCTIONS ==========
+
+let xaiData = null;
+let isXAIVisible = false;
+
+async function toggleXAI() {
+    const xaiPanel = document.getElementById('xaiPanel');
+    const showBtn = document.getElementById('showXAIBtn');
+    
+    if (isXAIVisible) {
+        // Hide XAI panel
+        xaiPanel.classList.add('hidden');
+        showBtn.innerHTML = '🔍 Show AI Explanations';
+        showBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg';
+    } else {
+        // Show XAI panel - load data if not already loaded
+        if (!xaiData) {
+            await loadXAIData();
+        }
+        displayXAIForCurrentQuestion();
+        xaiPanel.classList.remove('hidden');
+        showBtn.innerHTML = '❌ Hide Explanations';
+        showBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg';
+    }
+    
+    isXAIVisible = !isXAIVisible;
+}
+
+// In practice.html - update the XAI URL paths
+
+async function loadXAIData() {
+    try {
+        console.log("🔄 Loading XAI data...");
+        // CORRECT URL: /api/sessions/{id}/xai-explanations/
+        const response = await fetch(`/api/sessions/${sessionId}/xai-explanations/`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            xaiData = data;
+            console.log("✅ XAI data loaded:", data.xai_available ? "XAI available" : "XAI not available");
+        } else if (response.status === 404) {
+            console.log("ℹ️ XAI endpoint not found or no XAI data available");
+            xaiData = { xai_available: false, message: "XAI explanations not available for this session" };
+        } else {
+            console.error("❌ Error loading XAI data:", response.status);
+            xaiData = { xai_available: false, message: "Failed to load explanations" };
+        }
+    } catch (error) {
+        console.error("❌ Error loading XAI data:", error);
+        xaiData = { xai_available: false, message: "Connection error loading explanations" };
+    }
+}
+
+// Update debug function to show correct URLs
+function debugXAI() {
+    console.log("🔍 XAI DEBUG INFO:");
+    console.log("Session ID:", sessionId);
+    console.log("XAI Data:", xaiData);
+    console.log("XAI Available:", xaiData?.xai_available);
+    console.log("XAI Report:", xaiData?.xai_report);
+    console.log("Questions count:", questions.length);
+    console.log("Current question index:", currentQuestionIndex);
+    
+    // Test URLs
+    const xaiUrl = `/api/sessions/${sessionId}/xai-explanations/`;
+    const generateXaiUrl = `/api/sessions/${sessionId}/generate-questions-xai/`;
+    
+    console.log("XAI Explanation URL:", xaiUrl);
+    console.log("XAI Generation URL:", generateXaiUrl);
+    
+    // Show debug info in alert
+    let debugInfo = `XAI Status: ${xaiData?.xai_available ? 'Available' : 'Not Available'}\n`;
+    debugInfo += `Session: ${sessionId}\n`;
+    debugInfo += `Questions: ${questions.length}\n`;
+    debugInfo += `XAI Explanation URL: ${xaiUrl}\n`;
+    debugInfo += `XAI Generation URL: ${generateXaiUrl}`;
+    
+    alert(debugInfo);
+}
+
+function displayXAIForCurrentQuestion() {
+    const xaiContent = document.getElementById('xaiContent');
+    const qualityScore = document.getElementById('qualityScore');
+    
+    // Check if we have a valid current question
+    if (!questions || questions.length === 0 || currentQuestionIndex >= questions.length) {
+        xaiContent.innerHTML = `
+            <div class="text-center py-6">
+                <div class="text-4xl mb-4">❓</div>
+                <p class="text-gray-600">No question available to display explanations.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Check if XAI data is available
+    if (!xaiData || !xaiData.xai_available) {
+        const message = xaiData?.message || "AI explanations are not available for this session.";
+        
+        xaiContent.innerHTML = `
+            <div class="text-center py-6">
+                <div class="text-4xl mb-4">🤖</div>
+                <p class="text-gray-600">${message}</p>
+                <p class="text-sm text-gray-400 mt-2">Questions were generated using standard method.</p>
+                ${xaiData?.error ? `<p class="text-sm text-red-400 mt-1">Error: ${xaiData.error}</p>` : ''}
+            </div>
+        `;
+        qualityScore.textContent = 'Quality: --';
+        qualityScore.className = 'bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-semibold';
+        return;
+    }
+    
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionExplanation = currentQuestion.explanation || {};
+    const questionKey = `question_${currentQuestionIndex + 1}`;
+    const externalExplanation = xaiData.xai_report?.explanations?.[questionKey];
+    const judgeEval = xaiData.xai_report?.quality_assurance;
+    
+    // Update quality score
+    const overallScore = judgeEval?.overall_score || xaiData.quality_score || 0;
+    qualityScore.textContent = `Quality: ${overallScore}/100`;
+    qualityScore.className = `px-3 py-1 rounded-full text-sm font-semibold ${
+        overallScore >= 80 ? 'bg-green-100 text-green-800' :
+        overallScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
+        'bg-red-100 text-red-800'
+    }`;
+    
+    // Use the enhanced explanation data from the question itself
+    xaiContent.innerHTML = `
+        <!-- Enhanced Explanation from LLM -->
+        <div class="bg-white p-4 rounded-lg border border-blue-200 mb-4">
+            <h4 class="font-semibold text-blue-700 mb-3">🧠 AI Reasoning</h4>
+            <div class="space-y-3">
+                <div>
+                    <strong class="text-gray-700">Reason:</strong>
+                    <p class="text-gray-600 mt-1">${questionExplanation.reason || 'No specific reason provided'}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <strong class="text-gray-700">Relevance Score:</strong>
+                        <div class="mt-1">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full" style="width: ${(questionExplanation.relevance_score || 0) * 100}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-600">${Math.round((questionExplanation.relevance_score || 0) * 100)}%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <strong class="text-gray-700">XAI Method:</strong>
+                        <p class="text-gray-600 text-sm mt-1">${questionExplanation.xai_method || 'LLM self-explanation'}</p>
+                    </div>
+                </div>
+                ${questionExplanation.source_skills && questionExplanation.source_skills.length > 0 ? `
+                    <div>
+                        <strong class="text-gray-700">Source Skills:</strong>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${questionExplanation.source_skills.map(skill => 
+                                `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${skill}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+        
+        <!-- Evidence Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <!-- CV Evidence -->
+            <div class="bg-white p-4 rounded-lg border border-green-200">
+                <h4 class="font-semibold text-green-700 mb-3">📄 CV Evidence</h4>
+                <div class="text-sm text-gray-700 bg-green-50 p-3 rounded border">
+                    "${questionExplanation.evidence_from_cv || (externalExplanation?.cv_influences ? Object.keys(externalExplanation.cv_influences)[0] : 'No specific CV evidence')}"
+                </div>
+            </div>
+            
+            <!-- JD Evidence -->
+            <div class="bg-white p-4 rounded-lg border border-blue-200">
+                <h4 class="font-semibold text-blue-700 mb-3">💼 JD Evidence</h4>
+                <div class="text-sm text-gray-700 bg-blue-50 p-3 rounded border">
+                    "${questionExplanation.evidence_from_jd || (externalExplanation?.jd_influences ? Object.keys(externalExplanation.jd_influences)[0] : 'No specific JD evidence')}"
+                </div>
+            </div>
+        </div>
+        
+        <!-- Judge Evaluation -->
+        ${judgeEval?.question_evaluations && judgeEval.question_evaluations[currentQuestionIndex] ? `
+            <div class="bg-white p-4 rounded-lg border border-yellow-200">
+                <h4 class="font-semibold text-yellow-700 mb-3">⚖️ Quality Assessment</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div class="text-center">
+                        <div class="font-semibold text-blue-600">${judgeEval.question_evaluations[currentQuestionIndex].relevance_score}/10</div>
+                        <div class="text-gray-600 text-xs">Relevance</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-semibold text-green-600">${judgeEval.question_evaluations[currentQuestionIndex].assessment_value_score}/10</div>
+                        <div class="text-gray-600 text-xs">Assessment</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-semibold text-purple-600">${judgeEval.question_evaluations[currentQuestionIndex].difficulty_score}/10</div>
+                        <div class="text-gray-600 text-xs">Difficulty</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-semibold text-red-600">${judgeEval.question_evaluations[currentQuestionIndex].bias_score}/10</div>
+                        <div class="text-gray-600 text-xs">Bias Risk</div>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+    `;
+}
+
+function createQuestionProgress() {
+    const progressDiv = document.getElementById('questionProgress');
+    progressDiv.innerHTML = '';
+    
+    questions.forEach((_, index) => {
+        const btn = document.createElement('button');
+        btn.className = `w-10 h-10 rounded-full font-semibold transition duration-200 ${
+            index === currentQuestionIndex ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+        }`;
+        btn.textContent = index + 1;
+        btn.onclick = () => {
+            displayQuestion(index);
+            // 🔥 FIX: Update XAI panel when question changes via navigation
+            if (isXAIVisible) {
+                displayXAIForCurrentQuestion();
+            }
+        };
+        progressDiv.appendChild(btn);
+    });
+}
+
+function displayQuestion(index) {
+    const questionContainer = document.getElementById('currentQuestion');
+    
+    if (questions[index]) {
+        const question = questions[index];
+        
+        // Use the correct field structure from your AI generator
+        const questionText = question.question || "Question not available";
+        const explanation = question.explanation || {};
+        const reason = explanation.reason || "Relevant to your skills and experience";
+        const focus = question.focus || question.skill_type || "general";
+        const targetSkill = question.target_skill || "general";
+        const skillType = question.skill_type || "matched_skill";
+        const relevanceScore = explanation.relevance_score || 0.8;
+        
+        const skillTypeColor = skillType === 'matched_skill' ? 'green' : 'blue';
+        const skillTypeText = skillType === 'matched_skill' ? 'Matched Skill' : 'Development Area';
+        
+        questionContainer.innerHTML = `
+            <div class="mb-4">
+                <p class="text-xl font-semibold mb-3 text-gray-800">${questionText}</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-700 font-semibold mb-1">🎯 Focus:</p>
+                        <p class="text-sm text-gray-700 capitalize">${focus.replace('_', ' ')}</p>
+                    </div>
+                    <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                        <p class="text-sm text-green-700 font-semibold mb-1">💡 Target Skill:</p>
+                        <p class="text-sm text-gray-700 capitalize">${targetSkill}</p>
+                    </div>
+                    <div class="bg-${skillTypeColor}-50 p-3 rounded-lg border border-${skillTypeColor}-200">
+                        <p class="text-sm text-${skillTypeColor}-700 font-semibold mb-1">📊 Type:</p>
+                        <p class="text-sm text-gray-700">${skillTypeText}</p>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                        <p class="text-sm text-purple-700 font-semibold mb-1">📈 Relevance:</p>
+                        <p class="text-sm text-gray-700">${Math.round(relevanceScore * 100)}%</p>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <p class="text-sm text-yellow-700 font-semibold mb-1">🤔 Why we ask this:</p>
+                    <p class="text-sm text-gray-700">${reason}</p>
+                    ${explanation.source_skills && explanation.source_skills.length > 0 ? 
+                        `<p class="text-xs text-yellow-600 mt-1"><strong>Related skills:</strong> ${explanation.source_skills.join(', ')}</p>` : 
+                        ''
+                    }
+                </div>
+            </div>
+        `;
+        
+        // Display hints for this question
+        displayHintsForQuestion(question);
+        
+        currentQuestionIndex = index;
+        updateProgressIndicator();
+        
+        // Reset answer panel
+        document.getElementById('modelAnswerPanel').classList.add('hidden');
+        document.getElementById('viewAnswerBtn').innerHTML = '💡 View Model Answer';
+        document.getElementById('viewAnswerBtn').className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200';
+        isAnswerVisible = false;
+        
+        // 🔥 FIX: Always update XAI panel when question changes, if it's visible
+        if (isXAIVisible) {
+            displayXAIForCurrentQuestion();
+        }
+
+        // 🔥 NEW: AUTO-SCROLL TO TOP OF QUESTION SECTION
+        setTimeout(() => {
+            // Scroll to the question container smoothly
+            questionContainer.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }, 100);
+        
+    }
+}
+// Add this to your existing debug function
+function safeDebug() {
+    console.log("🔍 DEBUG: Current questions and XAI state:");
+    console.log("Total questions:", questions.length);
+    console.log("XAI data available:", !!xaiData);
+    console.log("XAI report:", xaiData?.xai_report);
+    
+    if (xaiData?.xai_report) {
+        console.log("Judge overall score:", xaiData.xai_report.quality_assurance.overall_score);
+        console.log("Confidence metrics:", xaiData.xai_report.confidence_metrics);
+    }
+}
 
 // ========== UTILITY FUNCTIONS ==========
 
@@ -285,10 +672,15 @@ async function startRecording() {
     try {
         console.log("🎤 STARTING RECORDING...");
         
+        // Check browser support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Browser does not support audio recording');
+        }
+        
         // Reset chunks
         audioChunks = [];
         
-        // Get microphone access
+        // Get microphone access with better error handling
         const stream = await navigator.mediaDevices.getUserMedia({ 
             audio: {
                 channelCount: 1,
@@ -336,6 +728,12 @@ async function startRecording() {
             }
         };
         
+        // Handle recording errors
+        mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            showRecordingError(event.error);
+        };
+        
         // Start recording
         mediaRecorder.start(500); // Collect data every 500ms
         isRecording = true;
@@ -349,10 +747,19 @@ async function startRecording() {
         
     } catch (error) {
         console.error('❌ Recording failed:', error);
-        showRecordingError(error);
+        
+        // More specific error messages
+        if (error.name === 'NotAllowedError') {
+            showRecordingError('Microphone access denied. Please allow microphone permissions and try again.');
+        } else if (error.name === 'NotFoundError') {
+            showRecordingError('No microphone found. Please check your audio device.');
+        } else if (error.name === 'NotSupportedError') {
+            showRecordingError('Your browser does not support audio recording.');
+        } else {
+            showRecordingError(error.message);
+        }
     }
 }
-
 function stopRecording() {
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
@@ -506,6 +913,9 @@ function toggleModelAnswer() {
     const answerPanel = document.getElementById('modelAnswerPanel');
     const viewAnswerBtn = document.getElementById('viewAnswerBtn');
     
+    console.log("🔄 Toggling model answer, current state:", isAnswerVisible);
+    console.log("Current question:", questions[currentQuestionIndex]);
+    
     if (isAnswerVisible) {
         // Hide answer
         answerPanel.classList.add('hidden');
@@ -514,37 +924,156 @@ function toggleModelAnswer() {
     } else {
         // Show answer
         const currentQuestion = questions[currentQuestionIndex];
-        if (currentQuestion && currentQuestion.model_answer) {
+        
+        if (!currentQuestion) {
+            console.error("❌ No current question found!");
+            document.getElementById('modelAnswerContent').innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-4xl mb-4">❌</div>
+                    <p class="text-red-500">No question data available.</p>
+                </div>
+            `;
+            answerPanel.classList.remove('hidden');
+            isAnswerVisible = true;
+            return;
+        }
+
+        // Try all possible field names for the model answer
+        const modelAnswer = currentQuestion.model_answer || 
+                           currentQuestion.answer || 
+                           currentQuestion.model_answer_text ||
+                           currentQuestion.sample_answer ||
+                           currentQuestion.expected_answer ||
+                           null;
+
+        console.log("🔍 Model answer search result:", {
+            model_answer: currentQuestion.model_answer,
+            answer: currentQuestion.answer,
+            model_answer_text: currentQuestion.model_answer_text,
+            sample_answer: currentQuestion.sample_answer,
+            expected_answer: currentQuestion.expected_answer,
+            finalResult: modelAnswer
+        });
+
+        // Try all possible field names for key points
+        const keyPoints = currentQuestion.key_points || 
+                         currentQuestion.answer_hints || 
+                         currentQuestion.hints ||
+                         ["• Provide a clear situation or context",
+                          "• Explain your specific task or responsibility", 
+                          "• Describe the actions you took",
+                          "• Share the results or outcomes"];
+
+        if (modelAnswer) {
+            console.log("✅ Found model answer, displaying...");
             document.getElementById('modelAnswerContent').innerHTML = `
                 <div class="prose max-w-none">
                     <div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
                         <h4 class="font-semibold text-green-800 mb-2">📋 Key Points to Cover:</h4>
-                        <ul class="list-disc list-inside text-green-700 text-sm">
-                            ${currentQuestion.key_points ? currentQuestion.key_points.map(point => `<li>${point}</li>`).join('') : '<li>Clear problem statement</li><li>Your specific actions</li><li>Measurable results</li>'}
+                        <ul class="list-disc list-inside text-green-700 text-sm space-y-1">
+                            ${Array.isArray(keyPoints) ? keyPoints.map(point => `<li>${point}</li>`).join('') : '<li>Focus on clear, structured responses</li>'}
                         </ul>
                     </div>
-                    <div class="text-gray-800 leading-relaxed">
-                        ${formatAnswerText(currentQuestion.model_answer)}
+                    <div class="text-gray-800 leading-relaxed bg-white p-4 rounded border">
+                        ${formatAnswerText(modelAnswer)}
+                    </div>
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-700"><strong>💡 Tip:</strong> Use the STAR method (Situation, Task, Action, Result) for behavioral questions.</p>
                     </div>
                 </div>
             `;
         } else {
+            console.log("❌ No model answer found, showing fallback");
+            // Generate a fallback answer based on question content
+            const fallbackAnswer = generateFallbackAnswer(currentQuestion);
+            
             document.getElementById('modelAnswerContent').innerHTML = `
-                <div class="text-center py-8">
-                    <div class="text-4xl mb-4">🤔</div>
-                    <p class="text-gray-500">No model answer available for this question.</p>
-                    <p class="text-sm text-gray-400 mt-2">Focus on providing a structured response using the hints provided.</p>
+                <div class="prose max-w-none">
+                    <div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200">
+                        <h4 class="font-semibold text-yellow-800 mb-2">📋 Suggested Approach:</h4>
+                        <ul class="list-disc list-inside text-yellow-700 text-sm space-y-1">
+                            ${Array.isArray(keyPoints) ? keyPoints.map(point => `<li>${point}</li>`).join('') : `
+                                <li>Start with a clear situation or context</li>
+                                <li>Explain your specific role and tasks</li>
+                                <li>Describe the actions you took</li>
+                                <li>Share measurable results or outcomes</li>
+                            `}
+                        </ul>
+                    </div>
+                    <div class="text-gray-800 leading-relaxed bg-white p-4 rounded border">
+                        <p class="text-lg font-semibold mb-3">Sample Answer Structure:</p>
+                        ${formatAnswerText(fallbackAnswer)}
+                    </div>
+                    <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="text-sm text-gray-600"><strong>Note:</strong> This is a generated sample answer. Focus on your specific experiences.</p>
+                        <p class="text-xs text-gray-500 mt-1">Available fields in question: ${Object.keys(currentQuestion).join(', ')}</p>
+                    </div>
                 </div>
             `;
         }
+        
         answerPanel.classList.remove('hidden');
         viewAnswerBtn.innerHTML = '👁️ Hide Answer';
         viewAnswerBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200';
+        
+        // Scroll to the answer panel
+        setTimeout(() => {
+            answerPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     }
     
     isAnswerVisible = !isAnswerVisible;
 }
 
+// 🔥 ADD THIS HELPER FUNCTION
+function generateFallbackAnswer(question) {
+    const questionText = question.question || "this question";
+    const focus = question.focus || question.skill_type || "general";
+    const targetSkill = question.target_skill || "relevant skills";
+    
+    const answerTemplates = {
+        'technical': `For technical questions about ${targetSkill}, I would approach this by:
+
+1. Understanding the requirements: Clarify the specific technical challenge or requirement.
+2. Designing a solution: Outline the architecture or approach I would use.
+3. Implementation: Describe the key technologies, frameworks, or methods.
+4. Testing and validation: Explain how I would ensure the solution works correctly.
+5. Results: Share expected outcomes or similar successful implementations from my experience.
+
+In my previous work, I've successfully applied ${targetSkill} to solve similar challenges.`,
+
+        'behavioral': `Using the STAR method (Situation, Task, Action, Result):
+
+Situation: In a previous role, we faced a challenge that required ${targetSkill}...
+Task: My responsibility was to...
+Action: I took the following steps: 1) ... 2) ... 3) ...
+Result: The outcome was... with measurable impact such as...
+
+This experience demonstrates my ability to handle ${focus.replace('_', ' ')} effectively.`,
+
+        'situational': `If faced with this scenario, I would:
+
+1. Assess the situation to understand all factors and constraints
+2. Define objectives and success criteria
+3. Develop a plan with clear steps and timeline
+4. Execute while adapting to any challenges
+5. Evaluate results and learn from the experience
+
+My approach to ${focus.replace('_', ' ')} situations is methodical and results-oriented.`,
+
+        'general': `To address ${questionText}, I would draw on my experience with ${targetSkill}:
+
+• Start with the context and why this is important
+• Explain my specific approach and methodology  
+• Share relevant examples from my experience
+• Highlight the outcomes and lessons learned
+• Connect back to how this applies to the current role
+
+I believe my experience in ${targetSkill} positions me well for this type of challenge.`
+    };
+
+    return answerTemplates[focus] || answerTemplates.general;
+}
 function formatAnswerText(text) {
     // Simple formatting for better readability
     return text.replace(/\n/g, '<br>')
@@ -580,6 +1109,7 @@ function displayHintsForQuestion(question) {
         hintsCountEl.textContent = '0 hints';
     }
 }
+
 
 // ========== QUESTION MANAGEMENT ==========
 
@@ -760,9 +1290,16 @@ function displayQuestion(index) {
         document.getElementById('viewAnswerBtn').innerHTML = '💡 View Model Answer';
         document.getElementById('viewAnswerBtn').className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200';
         isAnswerVisible = false;
+
+        // 🔥 AUTO-SCROLL TO TOP
+        setTimeout(() => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }, 100);
     }
 }
-
 function createQuestionProgress() {
     const progressDiv = document.getElementById('questionProgress');
     progressDiv.innerHTML = '';
@@ -773,11 +1310,16 @@ function createQuestionProgress() {
             index === currentQuestionIndex ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
         }`;
         btn.textContent = index + 1;
-        btn.onclick = () => displayQuestion(index);
+        btn.onclick = () => {
+            displayQuestion(index);
+            // 🔥 FIX: Update XAI panel when question changes via navigation
+            if (isXAIVisible) {
+                displayXAIForCurrentQuestion();
+            }
+        };
         progressDiv.appendChild(btn);
     });
 }
-
 function updateProgressIndicator() {
     const buttons = document.getElementById('questionProgress').children;
     for (let i = 0; i < buttons.length; i++) {

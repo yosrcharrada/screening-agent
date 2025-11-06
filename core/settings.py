@@ -144,3 +144,24 @@ import os
 # env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # GOOGLE_API_KEY = env('GOOGLE_API_KEY', default=None)
+
+# Email configuration
+# For development/testing, you can use console backend or configure SMTP
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+
+# SMTP Configuration (for production with Gmail or other SMTP service)
+# To use Gmail SMTP:
+# 1. Set EMAIL_BACKEND to 'django.core.mail.backends.smtp.EmailBackend'
+# 2. Configure the following settings with your credentials
+# 3. For Gmail, you need to enable "App Passwords" in your Google account settings
+
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@screening-agent.com')
+
+# For testing without actual email: use console backend
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

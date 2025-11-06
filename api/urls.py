@@ -34,4 +34,14 @@ urlpatterns = [
     path('analyze-cv/', views.analyze_cv_standalone, name='analyze_cv_standalone'),
     path('analyze-cv-with-jd/', views.analyze_cv_with_jd, name='analyze_cv_with_jd'),
     path('cv-analysis-report/<int:session_id>/', views.get_cv_analysis_report, name='get_cv_analysis_report'),
+    
+    # Job Notification endpoints
+    path('user-profiles/', views.create_user_profile, name='create_user_profile'),
+    path('user-profiles/<str:email>/', views.manage_user_profile, name='manage_user_profile'),
+    path('user-profiles/<str:email>/notifications/', views.get_user_notifications, name='get_user_notifications'),
+    path('user-profiles/<str:email>/trigger-matching/', views.trigger_job_matching, name='trigger_job_matching'),
+    path('jobs/search/', views.search_jobs_manually, name='search_jobs_manually'),
+    path('jobs/recent/', views.get_recent_jobs, name='get_recent_jobs'),
+    path('notifications/<int:notification_id>/mark-read/', views.mark_notification_read, name='mark_notification_read'),
+    path('email/test/', views.send_test_email, name='send_test_email'),
 ]

@@ -50,3 +50,54 @@ class ScoreResult(models.Model):
     feature_contributions = models.JSONField(default=dict)
     evidence_quotes = models.JSONField(default=list)
     created_at = models.DateTimeField(null=True, blank=True)  # Remove auto_now_add temporarily
+
+
+class UserProfile(models.Model):
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=255, blank=True)
+    skills = models.JSONField(default=list)  # List of skills user has
+    preferred_job_titles = models.JSONField(default=list)  # Job titles user is interested in
+    preferred_locations = models.JSONField(default=list)  # Preferred job locations
+    cv_text = models.TextField(blank=True)  # Store CV text for matching
+    is_active = models.BooleanField(default=True)  # Enable/disable notifications
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.email} - {self.name}"
+
+
+class JobOffer(models.Model):
+    title = models.CharField(max_length=500)
+    company = models.CharField(max_length=255, blank=True)
+    description = models.TextField()
+    location = models.CharField(max_length=255, blank=True)
+    url = models.URLField(max_length=1000)
+    source = models.CharField(max_length=100)  # e.g., 'adzuna', 'indeed', 'github'
+    required_skills = models.JSONField(default=list)
+    salary_range = models.CharField(max_length=255, blank=True)
+    job_type = models.CharField(max_length=100, blank=True)  # e.g., 'full-time', 'part-time'
+    posted_date = models.DateTimeField(null=True, blank=True)
+    fetched_at = models.DateTimeField(auto_now_add=True)
+    external_id = models.CharField(max_length=255, unique=True)  # To avoid duplicates
+
+    def __str__(self):
+        return f"{self.title} at {self.company}"
+
+    class Meta:
+        ordering = ['-posted_date', '-fetched_at']
+
+
+class JobNotification(models.Model):
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    job_offer = models.ForeignKey(JobOffer, on_delete=models.CASCADE)
+    match_score = models.FloatField(default=0.0)  # How well the job matches user profile
+    sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notification for {self.user_profile.email} - {self.job_offer.title}"
+
+    class Meta:
+        ordering = ['-sent_at']
+        unique_together = ['user_profile', 'job_offer']  # Avoid duplicate notifications

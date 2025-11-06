@@ -16,6 +16,8 @@ urlpatterns = [
     path('practice/<int:session_id>/', views.practice_page, name='practice'),
     path('results/<int:session_id>/', views.results_page, name='results'),
     path('api/analyze-speech/', views.analyze_speech, name='analyze_speech'),
+    path('api/analyze-video-emotions/', views.analyze_video_emotions, name='analyze_video_emotions'),  # 👈 ADD THIS LINE
+
     path('cv-analysis/', views.cv_analysis_page, name='cv_analysis_page'),
     path('signup/', views.signup_view, name='signup'),
     path('login/', views.login_view, name='login'),

@@ -21,9 +21,12 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult
-from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer
+from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult, UserProfile, JobOffer, JobNotification
+from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer, UserProfileSerializer, JobOfferSerializer, JobNotificationSerializer
 from .speech_analysis import transcribe, highlight_fillers
+from .job_scraper import job_scraper
+from .job_matcher import job_matcher
+from .email_service import email_service
 
 from .utils import extract_text_from_pdf, fetch_content_from_url, validate_pdf_file
 from django.utils import timezone
@@ -1247,13 +1250,6 @@ def results_page(request, session_id):
 
 
 # Job Notification Feature Views
-from .models import UserProfile, JobOffer, JobNotification
-from .serializers import UserProfileSerializer, JobOfferSerializer, JobNotificationSerializer
-from .job_scraper import job_scraper
-from .job_matcher import job_matcher
-from .email_service import email_service
-
-
 @api_view(['POST'])
 def create_user_profile(request):
     """Create a new user profile for job notifications"""

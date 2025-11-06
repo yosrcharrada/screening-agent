@@ -3,7 +3,6 @@ Email notification service for sending job offers to users.
 Uses Django's built-in email backend.
 """
 from django.core.mail import send_mail, EmailMultiAlternatives
-from django.template.loader import render_to_string
 from django.conf import settings
 import logging
 from typing import List, Dict

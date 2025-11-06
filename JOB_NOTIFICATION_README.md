@@ -195,16 +195,35 @@ Body: {"email": "test@example.com"}
 
 The scraper fetches jobs from the following free sources:
 
-### 1. Remotive (Primary)
+### 1. Remotive (Primary - Recommended)
 - API: https://remotive.com/api/remote-jobs
 - No API key required
 - Specializes in remote jobs
 - High quality listings
+- **Recommended as primary source**
 
-### 2. GitHub (Secondary)
+### 2. GitHub (Supplementary - Limited)
 - Searches GitHub repositories for hiring/jobs content
 - Uses public GitHub API
 - No API key required for basic usage
+- **⚠️ LIMITATIONS:**
+  - **Low accuracy**: ~20-30% success rate
+  - May include false positives
+  - Not actual job boards
+  - Should be used as supplementary source only
+  - Consider disabling if quality issues arise
+
+**Recommendation**: Use Remotive as the primary source. GitHub source is experimental and may be removed in future versions if accuracy doesn't improve.
+
+**To disable GitHub source**: Comment out the GitHub fetch call in `api/job_scraper.py` line ~51:
+```python
+# try:
+#     github_jobs = self._fetch_from_github_jobs(keywords, location, limit=limit//2)
+#     all_jobs.extend(github_jobs)
+#     logger.info(f"Fetched {len(github_jobs)} jobs from GitHub")
+# except Exception as e:
+#     logger.error(f"Error fetching from GitHub: {e}")
+``` for basic usage
 
 ## Matching Algorithm
 

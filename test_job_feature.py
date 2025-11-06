@@ -7,8 +7,9 @@ This tests the core functionality without Django dependencies.
 import sys
 import os
 
-# Add the project to path
-sys.path.insert(0, '/home/runner/work/screening-agent/screening-agent')
+# Add the project to path - use relative path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
 
 # Configure Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')

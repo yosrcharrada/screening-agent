@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import logging
 import re
+import time
 from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ class JobScraper:
         """
         all_jobs = []
         
-        # Try multiple sources
+        # Try Remotive API with retry logic
         try:
             remotive_jobs = self._fetch_from_remotive(keywords, limit=limit//2)
             all_jobs.extend(remotive_jobs)
@@ -42,6 +43,9 @@ class JobScraper:
         except Exception as e:
             logger.error(f"Error fetching from Remotive: {e}")
         
+        # Note: GitHub source is experimental and may have low accuracy
+        # GitHub Jobs API is deprecated, so we search repositories instead
+        # This may return false positives and should be used as supplementary source
         try:
             github_jobs = self._fetch_from_github_jobs(keywords, location, limit=limit//2)
             all_jobs.extend(github_jobs)
@@ -55,13 +59,19 @@ class JobScraper:
         """
         Fetch jobs from Remotive API (free, no API key required)
         API: https://remotive.com/api/remote-jobs
+        
+        Implements retry logic with exponential backoff for reliability.
         """
         jobs = []
-        try:
-            url = "https://remotive.com/api/remote-jobs"
-            response = requests.get(url, headers=self.headers, timeout=10)
-            
-            if response.status_code == 200:
+        max_retries = 3
+        retry_delay = 1  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                url = "https://remotive.com/api/remote-jobs"
+                response = requests.get(url, headers=self.headers, timeout=15)
+                response.raise_for_status()  # Raise exception for bad status codes
+                
                 data = response.json()
                 
                 for job_data in data.get('jobs', [])[:limit]:
@@ -85,37 +95,69 @@ class JobScraper:
                         'salary_range': job_data.get('salary', ''),
                     }
                     jobs.append(job)
-        
-        except Exception as e:
-            logger.error(f"Error in _fetch_from_remotive: {e}")
+                
+                # Success - break out of retry loop
+                break
+                
+            except requests.exceptions.Timeout:
+                logger.warning(f"Timeout fetching from Remotive (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))  # Exponential backoff
+                else:
+                    logger.error("Max retries reached for Remotive API")
+                    
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Request error fetching from Remotive (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))
+                else:
+                    logger.error("Max retries reached for Remotive API")
+                    
+            except Exception as e:
+                logger.error(f"Unexpected error in _fetch_from_remotive: {e}")
+                break  # Don't retry on unexpected errors
         
         return jobs
     
     def _fetch_from_github_jobs(self, keywords: List[str], location: str = "", limit: int = 25) -> List[Dict]:
         """
-        Fetch jobs from GitHub (using search)
-        Note: GitHub Jobs API is deprecated, but we can search GitHub for job postings
+        Fetch jobs from GitHub (using repository search)
+        
+        IMPORTANT: GitHub Jobs API is deprecated. This method searches GitHub repositories
+        for job postings, which may have low accuracy and reliability. Results may include
+        false positives or outdated information. Use as supplementary source only.
+        
+        Expected success rate: ~20-30% of results may be actual job postings.
+        Recommended: Use Remotive API as primary source.
         """
         jobs = []
-        try:
-            # Search GitHub repositories with "hiring" or "jobs" topics
-            query = " ".join(keywords) if keywords else "developer"
-            url = f"https://api.github.com/search/repositories"
-            params = {
-                'q': f'{query} hiring jobs in:readme',
-                'sort': 'updated',
-                'per_page': min(limit, 30)
-            }
-            
-            response = requests.get(url, headers=self.headers, params=params, timeout=10)
-            
-            if response.status_code == 200:
+        max_retries = 2
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Search GitHub repositories with "hiring" or "jobs" topics
+                query = " ".join(keywords) if keywords else "developer"
+                url = f"https://api.github.com/search/repositories"
+                params = {
+                    'q': f'{query} hiring jobs in:readme',
+                    'sort': 'updated',
+                    'per_page': min(limit, 30)
+                }
+                
+                response = requests.get(url, headers=self.headers, params=params, timeout=15)
+                response.raise_for_status()
+                
                 data = response.json()
                 
                 for repo in data.get('items', []):
                     # Try to extract job info from README
                     readme_url = f"https://api.github.com/repos/{repo['full_name']}/readme"
-                    readme_response = requests.get(readme_url, headers={'Accept': 'application/vnd.github.v3.raw'}, timeout=5)
+                    readme_response = requests.get(
+                        readme_url, 
+                        headers={'Accept': 'application/vnd.github.v3.raw'}, 
+                        timeout=10
+                    )
                     
                     if readme_response.status_code == 200:
                         readme_text = readme_response.text[:2000]  # Limit text
@@ -139,9 +181,23 @@ class JobScraper:
                             
                             if len(jobs) >= limit:
                                 break
-        
-        except Exception as e:
-            logger.error(f"Error in _fetch_from_github_jobs: {e}")
+                
+                # Success - break retry loop
+                break
+                
+            except requests.exceptions.Timeout:
+                logger.warning(f"Timeout fetching from GitHub (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))
+                    
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Request error fetching from GitHub (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))
+                    
+            except Exception as e:
+                logger.error(f"Unexpected error in _fetch_from_github_jobs: {e}")
+                break
         
         return jobs
     

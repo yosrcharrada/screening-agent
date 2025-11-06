@@ -8,8 +8,9 @@ import os
 import sys
 import django
 
-# Setup Django
-sys.path.insert(0, '/home/runner/work/screening-agent/screening-agent')
+# Setup Django - use relative path from script location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 

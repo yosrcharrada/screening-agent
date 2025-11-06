@@ -41,6 +41,10 @@ librosa
 weasyprint
 matplotlib
 shap
+opencv-python
+opencv-contrib-python
+deepface
+
 # pip install --upgrade langchain langchain-classic langchain-core langchain-text-splitters langchain-community
 # installiw : https://www.msys2.org/#installation li hne akhtarou l version li tebaa l pc o f shell li mtaa msys2 runninw l commande hedhi : pacman -S mingw-w64-x86_64-pango
 #python -c "import nltk; nltk.download('punkt')"

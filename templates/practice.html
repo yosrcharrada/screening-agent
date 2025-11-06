@@ -1889,10 +1889,7 @@ let videoChunks = [];
 
 async function startVideoRecording() {
     try {
-        // 1️⃣ Request video + audio from webcam
         videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-        // 2️⃣ Setup MediaRecorder
         videoRecorder = new MediaRecorder(videoStream, { mimeType: 'video/webm;codecs=vp8,opus' });
         videoChunks = [];
 
@@ -1900,42 +1897,40 @@ async function startVideoRecording() {
             if (e.data.size > 0) videoChunks.push(e.data);
         };
 
-        // 3️⃣ When recording stops
         videoRecorder.onstop = async () => {
             const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
 
-            // --- Preview video ---
+            // Preview video
             const url = URL.createObjectURL(videoBlob);
             const videoPreview = document.createElement('video');
             videoPreview.src = url;
             videoPreview.controls = true;
             videoPreview.className = 'mt-4 w-full rounded-lg';
             const previewContainer = document.getElementById('videoPreviewContainer');
-            previewContainer.innerHTML = '';
-            previewContainer.appendChild(videoPreview);
-
-            // --- Extract audio and analyze ---
-            try {
-                const audioBlob = await extractAudioFromVideoBlob(videoBlob); // Correct function
-                await analyzeAudio(audioBlob); // Updates transcription + metrics
-            } catch (err) {
-                console.error("❌ Failed to extract audio:", err);
-                showMessage("❌ Could not extract audio from video.", "red");
+            if (previewContainer) {
+                previewContainer.innerHTML = '';
+                previewContainer.appendChild(videoPreview);
             }
 
-            // --- Stop webcam tracks ---
-            videoStream.getTracks().forEach(track => track.stop());
+            try {
+                // --- Speech analysis ---
+                const audioBlob = await extractAudioFromVideoBlob(videoBlob);
+                await analyzeAudio(audioBlob);
 
-            // --- Reset buttons ---
+                // --- Facial emotion analysis ---
+                await analyzeFacialEmotions(videoBlob);
+            } catch (err) {
+                console.error("❌ Analysis failed:", err);
+                showMessage("❌ Analysis failed: " + err.message, "red");
+            }
+
+            videoStream.getTracks().forEach(track => track.stop());
             videoBtn.disabled = false;
             stopBtn.disabled = true;
         };
 
-        // 4️⃣ Start recording
         videoRecorder.start();
-        console.log("🎥 Video recording started");
         showMessage("🎥 Video recording started...", "blue");
-
         videoBtn.disabled = true;
         stopBtn.disabled = false;
 
@@ -1945,12 +1940,88 @@ async function startVideoRecording() {
     }
 }
 
+// -------------------------
+// Facial emotion analysis (forced hint)
+// -------------------------
+async function analyzeFacialEmotions(videoBlob) {
+    const hintsContainer = document.getElementById("hintsContainer");
+    if (hintsContainer) hintsContainer.innerHTML = "";
+
+    showMessage("Analyzing facial emotions...", "blue");
+
+    try {
+        const formData = new FormData();
+        formData.append("video", videoBlob, "recorded_video.webm");
+
+        const response = await fetch("/api/analyze-video-emotions/", {
+            method: "POST",
+            body: formData,
+        });
+
+        const data = await response.json();
+        console.log("Facial emotion response:", data);
+
+        // Determine dominant emotion from frames if provided
+        let dominantEmotion = "neutral";
+        if (data.frame_emotions && Array.isArray(data.frame_emotions) && data.frame_emotions.length > 0) {
+            const counts = {};
+            data.frame_emotions.forEach(e => {
+                const emo = e.toLowerCase();
+                counts[emo] = (counts[emo] || 0) + 1;
+            });
+            dominantEmotion = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+        } else if (data.dominant_emotion) {
+            dominantEmotion = data.dominant_emotion.toLowerCase();
+        }
+
+        // --- FORCE HINT HERE ---
+        const forcedHint = getEmotionHint(dominantEmotion); // always force hint
+        const hintText = `Detected emotion is ${dominantEmotion}. ${forcedHint}`;
+
+        // Append to hints container
+        if (hintsContainer) {
+            const hintDiv = document.createElement("div");
+            hintDiv.className = "bg-blue-100 border border-blue-300 p-3 rounded-xl text-sm text-gray-800 mt-2";
+            hintDiv.textContent = hintText;
+            hintsContainer.appendChild(hintDiv);
+        }
+
+        showMessage(`Facial emotion analysis complete: ${dominantEmotion}`, "green");
+
+    } catch (err) {
+        console.error("Error analyzing emotions:", err);
+
+        // Fallback hint
+        if (hintsContainer) {
+            const hintDiv = document.createElement("div");
+            hintDiv.className = "bg-red-100 border border-red-300 p-3 rounded-xl text-sm text-gray-800 mt-2";
+            hintDiv.textContent = "Detected emotion is neutral. Balanced and calm — maintain this confident look!";
+            hintsContainer.appendChild(hintDiv);
+        }
+
+        showMessage("Could not analyze facial emotions. Showing fallback hint.", "red");
+    }
+}
+
+// -------------------------
+// Emotion → Hint mapper
+// -------------------------
+function getEmotionHint(emotion) {
+    const hints = {
+        happy: "You look confident and engaged — great energy for communication!",
+        sad: "Try smiling more or lifting your tone to project enthusiasm.",
+        angry: "Your expression seems tense — relax your face and tone for calm delivery.",
+        fearful: "You appear anxious — take a deep breath and maintain eye contact.",
+        surprised: "Keep your expressions steady for a more composed appearance.",
+        neutral: "Balanced and calm — maintain this confident look!",
+        disgust: "You might seem uncomfortable — try relaxing your facial muscles.",
+    };
+    return hints[emotion] || "Keep your expressions natural and expressive!";
+}
 
 // ------------------------
 // AUDIO EXTRACTION FUNCTION
 // ------------------------
-// Helper: Extract audio from video Blob
-// Extract audio from video Blob and convert to WAV
 async function extractAudioFromVideoBlob(videoBlob) {
     const arrayBuffer = await videoBlob.arrayBuffer();
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();

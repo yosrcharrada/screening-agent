@@ -1,6 +1,8 @@
 from django.urls import path
 from django.views.generic import RedirectView  # ADD THIS IMPORT
 from . import views
+from .views import analyze_video_emotions
+
 
 urlpatterns = [
     path('test-llm/', views.test_llm_directly, name='test_llm'),
@@ -27,7 +29,9 @@ urlpatterns = [
     path('practice/<int:session_id>/', views.practice_page, name='practice'),
     path('', RedirectView.as_view(url='/upload/', permanent=False)),
     path('api/analyze-speech/', views.analyze_speech, name='analyze_speech'),
-    
+    path("analyze-video-emotions/", analyze_video_emotions, name="analyze_video_emotions"),    
+
+
     path('sessions/<int:session_id>/generate-questions-xai/', views.generate_questions_with_xai, name='generate_questions_xai'),
     path('sessions/<int:session_id>/xai-explanations/', views.get_xai_explanations, name='get_xai_explanations'),
     path('sessions/<int:session_id>/judge-questions/', views.judge_questions_manual, name='judge_questions'),
@@ -40,4 +44,6 @@ urlpatterns = [
     path('analyze-cv/', views.analyze_cv_standalone, name='analyze_cv_standalone'),
     path('analyze-cv-with-jd/', views.analyze_cv_with_jd, name='analyze_cv_with_jd'),
     path('cv-analysis-report/<int:session_id>/', views.get_cv_analysis_report, name='get_cv_analysis_report'),
+
+
 ]

@@ -101,6 +101,23 @@ from .models import QuestionSet
 
 from .xai_question_generator import xai_question_generator
 import json
+from .speech_analysis import transcribe, highlight_fillers, check_ffmpeg
+import os
+import tempfile
+import traceback
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import spacy
+nlp = spacy.load("en_core_web_lg")
+import os
+import tempfile
+import traceback
+import cv2
+from deepface import DeepFace
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+
 
 @api_view(['GET'])
 def test_llm_directly(request):
@@ -1252,6 +1269,136 @@ def analyze_speech(request):
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "No audio file"})
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import os
+import tempfile
+import cv2
+from deepface import DeepFace
+from .speech_analysis import convert_webm_to_mp4
+import subprocess
+
+@csrf_exempt
+def analyze_video_emotions(request):
+    try:
+        video_file = request.FILES.get('video')
+        if not video_file:
+            return JsonResponse({
+                'dominant_emotion': 'neutral',
+                'hint': 'Detected emotion: neutral. No video uploaded.',
+                'frame_emotions': [],
+                'frame_hints': []
+            }, status=400)
+
+        # Save WebM temporarily
+        temp_input = tempfile.NamedTemporaryFile(delete=False, suffix=".webm")
+        for chunk in video_file.chunks():
+            temp_input.write(chunk)
+        temp_input.close()
+
+        # Convert WebM → MP4
+        temp_video = convert_webm_to_mp4(temp_input.name)
+
+        cap = cv2.VideoCapture(temp_video)
+        if not cap.isOpened():
+            raise ValueError("Unable to read video")
+
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        frame_interval = max(1, int(fps / 2))  # analyze 2 frames/sec
+
+        emotions = []
+        frame_emotions = []
+        frame_hints = []
+        frame_idx = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            if frame_idx % frame_interval == 0:
+                try:
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    analysis = DeepFace.analyze(
+                        rgb_frame,
+                        actions=['emotion'],
+                        enforce_detection=False
+                    )
+
+                    dominant = None
+                    if isinstance(analysis, list) and len(analysis) > 0:
+                        dominant = analysis[0].get('dominant_emotion')
+                    elif isinstance(analysis, dict):
+                        dominant = analysis.get('dominant_emotion')
+
+                    if dominant:
+                        dominant = dominant.lower()
+                        emotions.append(dominant)
+                        frame_emotions.append(dominant)
+                        frame_hints.append(get_hint_for_emotion(dominant))
+                        print(f"Frame {frame_idx}: detected {dominant}")
+                    else:
+                        frame_emotions.append("neutral")
+                        frame_hints.append(get_hint_for_emotion("neutral"))
+                        print(f"Frame {frame_idx}: no face detected")
+                except Exception as e:
+                    frame_emotions.append("neutral")
+                    frame_hints.append(get_hint_for_emotion("neutral"))
+                    print(f"Frame skipped: {e}")
+
+            frame_idx += 1
+
+        cap.release()
+        os.remove(temp_input.name)
+        os.remove(temp_video)
+
+        # Determine the most frequent emotion
+        if not emotions:
+            dominant_emotion = "neutral"
+        else:
+            dominant_emotion = max(set(emotions), key=emotions.count)
+
+        # Map dominant emotion to hint
+        hint_message = get_hint_for_emotion(dominant_emotion)
+
+        return JsonResponse({
+            'dominant_emotion': dominant_emotion,
+            'hint': f"Detected emotion is {dominant_emotion}. {hint_message}",
+            'frame_emotions': frame_emotions,
+            'frame_hints': frame_hints
+        })
+
+    except subprocess.CalledProcessError:
+        return JsonResponse({
+            'dominant_emotion': 'neutral',
+            'hint': 'FFmpeg conversion failed.',
+            'frame_emotions': [],
+            'frame_hints': []
+        }, status=500)
+    except Exception as e:
+        return JsonResponse({
+            'dominant_emotion': 'neutral',
+            'hint': f"Error: {str(e)}",
+            'frame_emotions': [],
+            'frame_hints': []
+        }, status=500)
+
+
+# -------------------------
+# Map emotion → hint
+# -------------------------
+def get_hint_for_emotion(emotion):
+    hints_dict = {
+        "happy": "You look confident and engaged — great energy for communication!",
+        "sad": "Try smiling more or lifting your tone to project enthusiasm.",
+        "angry": "Your expression seems tense — relax your face and tone for calm delivery.",
+        "fearful": "You appear anxious — take a deep breath and maintain eye contact.",
+        "surprised": "Keep your expressions steady for a more composed appearance.",
+        "neutral": "Balanced and calm — maintain this confident look!",
+        "disgust": "You might seem uncomfortable — try relaxing your facial muscles."
+    }
+    return hints_dict.get(emotion, "Keep your expressions natural and expressive!")
+
 
 def calculate_interview_score(result):
     """Simple scoring logic"""

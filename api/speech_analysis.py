@@ -9,6 +9,10 @@ from tkinter import filedialog
 import threading
 import string
 from pydub import AudioSegment
+import spacy
+nlp = spacy.load("en_core_web_lg")
+import tempfile
+import subprocess
 
 
 
@@ -165,6 +169,57 @@ def highlight_fillers(transcript, language="en"):
         fillers = FILLERS_EN
     highlighted = [f"[{w}]" if w.lower() in fillers else w for w in words]
     return " ".join(highlighted)
+
+# -----------------------------
+# Convert audio to WAV
+# -----------------------------
+def convert_to_wav(audio_path):
+    """
+    Convert any audio file to mono 16kHz WAV using PyDub.
+    Returns path to temporary WAV file.
+    """
+    tmp_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+    tmp_wav.close()
+
+    try:
+        # Load audio file via PyDub
+        audio = AudioSegment.from_file(audio_path)
+        # Convert to mono, 16kHz, PCM16
+        audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
+        audio.export(tmp_wav.name, format="wav")
+        return tmp_wav.name
+    except Exception as e:
+        print("❌ Audio conversion failed:", str(e))
+        raise RuntimeError(f"Cannot convert {audio_path} to WAV. The file may be corrupted or unsupported.") from e
+
+def convert_webm_to_mp4(input_path):
+    """Convert WebM to MP4 using FFmpeg."""
+    tmp_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    tmp_mp4.close()
+    cmd = [
+        "ffmpeg",  # assumes ffmpeg is on PATH
+        "-y",
+        "-i", input_path,
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        tmp_mp4.name
+    ]
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    return tmp_mp4.name
+
+def emotion_hint(emotion):
+    """Return a hint message for a given emotion."""
+    hints = {
+        "happy": "You seem happy! Keep it up.",
+        "sad": "You look sad, maybe try smiling.",
+        "angry": "Take a deep breath to relax your tone.",
+        "surprise": "You look surprised, stay calm.",
+        "neutral": "Neutral expression, good for professional tone.",
+        "fear": "You seem afraid, try to relax.",
+        "disgust": "You look disgusted, maintain a neutral expression."
+    }
+    return hints.get(str(emotion).lower(), "Expression detected.")
 
 # -----------------------------
 # Convert audio to WAV

@@ -10,3 +10,11 @@ __pycache__/
 venv/
 __pycache__/
 *.pyc
+
+# Environment variables
+.env
+*.env
+
+# Database
+*.sqlite3
+db.sqlite3

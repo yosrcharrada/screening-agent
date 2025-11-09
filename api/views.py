@@ -21,9 +21,12 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult
-from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer
+from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult, UserProfile, JobOffer, JobNotification
+from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer, UserProfileSerializer, JobOfferSerializer, JobNotificationSerializer
 from .speech_analysis import transcribe, highlight_fillers
+from .job_scraper import job_scraper
+from .job_matcher import job_matcher
+from .email_service import email_service
 
 from .utils import extract_text_from_pdf, fetch_content_from_url, validate_pdf_file
 from django.utils import timezone
@@ -1244,3 +1247,219 @@ def practice_page(request, session_id):
 def results_page(request, session_id):
     """Render the results page"""
     return render(request, 'results.html', {'session_id': session_id})
+
+
+# Job Notification Feature Views
+@api_view(['POST'])
+def create_user_profile(request):
+    """Create a new user profile for job notifications"""
+    try:
+        serializer = UserProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            user_profile = serializer.save()
+            logger.info(f"Created new user profile: {user_profile.email}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error creating user profile: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def manage_user_profile(request, email):
+    """Get, update, or delete a user profile"""
+    try:
+        user_profile = UserProfile.objects.get(email=email)
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(f"Updated user profile: {email}")
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        user_profile.delete()
+        logger.info(f"Deleted user profile: {email}")
+        return Response({"message": "User profile deleted"}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+def search_jobs_manually(request):
+    """Manually search for jobs with given criteria"""
+    try:
+        keywords = request.data.get('keywords', [])
+        location = request.data.get('location', '')
+        limit = request.data.get('limit', 20)
+        
+        if not keywords:
+            return Response({"error": "Keywords are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Fetch jobs
+        jobs = job_scraper.fetch_jobs(keywords=keywords, location=location, limit=limit)
+        
+        return Response({
+            "total": len(jobs),
+            "jobs": jobs
+        })
+    except Exception as e:
+        logger.error(f"Error in manual job search: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_user_notifications(request, email):
+    """Get job notifications for a user"""
+    try:
+        user_profile = UserProfile.objects.get(email=email)
+        notifications = JobNotification.objects.filter(user_profile=user_profile).order_by('-sent_at')[:50]
+        serializer = JobNotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error getting notifications: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def mark_notification_read(request, notification_id):
+    """Mark a notification as read"""
+    try:
+        notification = JobNotification.objects.get(id=notification_id)
+        notification.is_read = True
+        notification.save()
+        return Response({"message": "Notification marked as read"})
+    except JobNotification.DoesNotExist:
+        return Response({"error": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def send_test_email(request):
+    """Send a test email to verify email configuration"""
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        success = email_service.send_test_email(email)
+        
+        if success:
+            return Response({"message": "Test email sent successfully"})
+        else:
+            return Response({"error": "Failed to send test email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        logger.error(f"Error sending test email: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_recent_jobs(request):
+    """Get recently fetched jobs"""
+    try:
+        limit = int(request.GET.get('limit', 50))
+        jobs = JobOffer.objects.all()[:limit]
+        serializer = JobOfferSerializer(jobs, many=True)
+        return Response({
+            "total": jobs.count(),
+            "jobs": serializer.data
+        })
+    except Exception as e:
+        logger.error(f"Error getting recent jobs: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def trigger_job_matching(request, email):
+    """Manually trigger job matching and notification for a specific user"""
+    try:
+        user_profile = UserProfile.objects.get(email=email)
+        
+        # Get recent jobs
+        recent_jobs = JobOffer.objects.all()[:100]
+        
+        if not recent_jobs.exists():
+            return Response({"message": "No jobs available to match"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Find matching jobs
+        min_score = float(request.data.get('min_score', 40.0))
+        matches = job_matcher.find_matching_jobs(
+            user_profile=user_profile,
+            jobs=list(recent_jobs),
+            min_score=min_score
+        )
+        
+        if not matches:
+            return Response({"message": "No matching jobs found"})
+        
+        # Filter out already notified jobs
+        new_jobs = []
+        match_scores = {}
+        
+        for job, score in matches:
+            already_notified = JobNotification.objects.filter(
+                user_profile=user_profile,
+                job_offer=job
+            ).exists()
+            
+            if not already_notified:
+                new_jobs.append(job)
+                match_scores[job.id] = score
+        
+        if not new_jobs:
+            return Response({"message": "All matching jobs already notified"})
+        
+        # Send email
+        send_email = request.data.get('send_email', False)
+        if send_email:
+            success = email_service.send_job_notification(
+                user_profile=user_profile,
+                jobs=new_jobs,
+                match_scores=match_scores
+            )
+            
+            if success:
+                # Create notification records
+                for job in new_jobs:
+                    JobNotification.objects.create(
+                        user_profile=user_profile,
+                        job_offer=job,
+                        match_score=match_scores.get(job.id, 0)
+                    )
+                
+                return Response({
+                    "message": f"Email sent with {len(new_jobs)} job(s)",
+                    "jobs_count": len(new_jobs)
+                })
+            else:
+                return Response({"error": "Failed to send email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            # Just return matching jobs without sending email
+            job_details = []
+            for job in new_jobs[:10]:  # Limit to 10 for response
+                job_details.append({
+                    'title': job.title,
+                    'company': job.company,
+                    'match_score': match_scores.get(job.id, 0)
+                })
+            
+            return Response({
+                "message": f"Found {len(new_jobs)} matching job(s)",
+                "jobs": job_details,
+                "total_matches": len(new_jobs)
+            })
+        
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error in trigger_job_matching: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

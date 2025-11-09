@@ -6,6 +6,7 @@ from api import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('api/jobs/', include('jobs.urls')),  # New jobs app endpoints
     
     # Redirect root to upload page
     path('', RedirectView.as_view(url='/upload/', permanent=False)),

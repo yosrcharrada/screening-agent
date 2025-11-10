@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Skill Gap Analysis</h2>
+        <p class="text-xl text-gray-600">See how your skills match the job requirements</p>
+    </div>
+
+    <!-- Match Overview -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 text-center border-2 border-blue-200">
+        <h3 class="text-xl font-semibold mb-4">Skill Match Overview</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600" id="matchPercentage">--%</div>
+                <div class="text-gray-600">Match Rate</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-green-600" id="cvSkillsCount">--</div>
+                <div class="text-gray-600">Your Skills</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-purple-600" id="jdSkillsCount">--</div>
+                <div class="text-gray-600">JD Requirements</div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div id="matchProgressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm text-gray-600 mt-1">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <!-- Matched Skills -->
+        <div class="bg-green-50 rounded-2xl p-8 border-2 border-green-200">
+            <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">✅</div>
+                <h3 class="text-2xl font-semibold text-green-800">Matched Skills</h3>
+            </div>
+            <div id="matchedSkills" class="space-y-4">
+                <div class="text-center py-8">
+                    <div class="loading-spinner mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Loading matched skills...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Missing Skills -->
+        <div class="bg-red-50 rounded-2xl p-8 border-2 border-red-200">
+            <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">❌</div>
+                <h3 class="text-2xl font-semibold text-red-800">Missing Skills</h3>
+            </div>
+            <div id="missingSkills" class="space-y-4">
+                <div class="text-center py-8">
+                    <div class="loading-spinner mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Loading skill gaps...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Evidence Section -->
+    <div class="bg-blue-50 rounded-2xl p-8 border-2 border-blue-200 mb-12">
+        <div class="flex items-center mb-6">
+            <div class="text-3xl mr-4">🔍</div>
+            <h3 class="text-2xl font-semibold text-blue-800">Evidence Analysis</h3>
+        </div>
+        <div id="evidenceSection" class="space-y-4">
+            <div class="text-center py-4">
+                <div class="loading-spinner mx-auto"></div>
+                <p class="mt-4 text-gray-600">Loading evidence analysis...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+   <!-- In skill_gap.html, replace the question generation section -->
+<div class="text-center mt-12 space-y-4">
+    <button onclick="generateQuestionsWithXAI()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition duration-200 text-lg shadow-lg">
+                🤖 Start Practice Session
+    </button>
+    <br>
+    <a href="/upload/" class="inline-block bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition duration-200">
+        ↩️ Upload Different Documents
+    </a>
+    <br>
+</div>
+
+<!-- Remove the entire questionsSection div from skill_gap.html -->
+
+    </div>
+</div>
+
+<script>
+const sessionId = {{ session_id }};
+
+async function generateQuestionsWithXAI() {
+    try {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '⏳ Generating AI Questions...';
+        button.disabled = true;
+
+        console.log("🚀 Starting XAI question generation for session:", sessionId);
+
+        // Call the XAI generation endpoint
+        const response = await fetch(`/api/sessions/${sessionId}/generate-questions-xai/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ XAI questions generated:", data);
+
+        // Show success message and redirect
+        alert(`✅ AI questions generated successfully!\nQuality Score: ${data.quality_score || 'N/A'}/100\n\nRedirecting to practice session...`);
+        
+        // Redirect to practice page after successful generation
+        window.location.href = `/practice/${sessionId}/`;
+
+    } catch (error) {
+        console.error('❌ XAI question generation failed:', error);
+        
+        // Show error but still redirect to practice (with fallback questions)
+        alert(`❌ AI generation failed: ${error.message}\n\nUsing standard questions instead.`);
+        
+        // Fallback: redirect to practice page anyway
+        window.location.href = `/practice/${sessionId}/`;
+    }
+}
+// Get CSRF token safely - only ONE function with proper null checking
+function getCSRFToken() {
+    // Method 1: Try to get from hidden input
+    let csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfTokenElement && csrfTokenElement.value) {
+        return csrfTokenElement.value;
+    }
+    
+    // Method 2: Try to get from meta tag
+    csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+    if (csrfTokenElement && csrfTokenElement.getAttribute('content')) {
+        return csrfTokenElement.getAttribute('content');
+    }
+    
+    // Method 3: Get from cookies
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    
+    if (cookieValue) {
+        return cookieValue;
+    }
+    
+    // Method 4: Last resort - return empty string
+    console.warn('CSRF token not found. Requests may fail.');
+    return '';
+}
+
+
+// Fetch and display skills data
+async function loadSkills() {
+    try {
+        const response = await fetch(`/api/sessions/${sessionId}/skills/`);
+        const data = await response.json();
+        
+        // Display match metrics
+        if (data.match_percentage !== undefined) {
+            const percentage = Math.round(data.match_percentage);
+            document.getElementById('matchPercentage').textContent = percentage + '%';
+            document.getElementById('matchProgressBar').style.width = percentage + '%';
+        }
+        if (data.cv_skill_count !== undefined) {
+            document.getElementById('cvSkillsCount').textContent = data.cv_skill_count;
+        }
+        if (data.jd_skill_count !== undefined) {
+            document.getElementById('jdSkillsCount').textContent = data.jd_skill_count;
+        }
+        
+        // Display matched skills
+        const matchedDiv = document.getElementById('matchedSkills');
+        matchedDiv.innerHTML = '';
+        
+        if (data.matched_skills && data.matched_skills.length > 0) {
+            data.matched_skills.forEach(skill => {
+                const skillEl = document.createElement('div');
+                skillEl.className = 'bg-white p-4 rounded-lg border border-green-200';
+                skillEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <strong class="text-lg text-green-700">${skill.skill}</strong>
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Matched</span>
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <div>📄 CV: "${skill.evidence_cv}"</div>
+                        <div>💼 JD: "${skill.evidence_jd}"</div>
+                    </div>
+                `;
+                matchedDiv.appendChild(skillEl);
+            });
+        } else {
+            matchedDiv.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="text-4xl mb-2">🔍</div>
+                    <p class="text-gray-500">No skill matches found</p>
+                    <p class="text-sm text-gray-400 mt-1">Try adding more technical details to your CV</p>
+                </div>
+            `;
+        }
+        
+        // Display missing skills 
+        const missingDiv = document.getElementById('missingSkills');
+        missingDiv.innerHTML = '';
+        
+        if (data.missing_skills && data.missing_skills.length > 0) {
+            data.missing_skills.forEach(skill => {
+                const skillEl = document.createElement('div');
+                skillEl.className = 'bg-white p-4 rounded-lg border border-red-200';
+                skillEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <strong class="text-lg text-red-700">${skill.skill}</strong>
+                        <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">Missing</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <div>💼 JD Requirement: "${skill.jd_requirement}"</div>
+                    </div>
+                `;
+                missingDiv.appendChild(skillEl);
+            });
+        } else {
+            missingDiv.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="text-4xl mb-2">🎯</div>
+                    <p class="text-gray-500">Great job! No major skill gaps</p>
+                    <p class="text-sm text-gray-400 mt-1">Your skills match the job requirements well</p>
+                </div>
+            `;
+        }
+        
+        // Display evidence section
+        const evidenceDiv = document.getElementById('evidenceSection');
+        evidenceDiv.innerHTML = '';
+        
+        if (data.evidence && data.evidence.length > 0) {
+            data.evidence.forEach(evidence => {
+                const statusColor = evidence.status === 'matched' ? 'green' : 'red';
+                const statusText = evidence.status === 'matched' ? 'Matched' : 'Missing';
+                const statusIcon = evidence.status === 'matched' ? '✅' : '❌';
+                
+                const evidenceEl = document.createElement('div');
+                evidenceEl.className = 'bg-white p-4 rounded-lg border border-blue-200';
+                evidenceEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                            <span class="text-xl mr-2">${statusIcon}</span>
+                            <strong class="text-lg text-blue-700">${evidence.skill}</strong>
+                        </div>
+                        <span class="bg-${statusColor}-100 text-${statusColor}-800 px-3 py-1 rounded-full text-sm font-semibold">${statusText}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-green-50 p-3 rounded border border-green-200">
+                            <div class="font-semibold text-green-700 mb-1">📄 Your CV Says:</div>
+                            <div class="text-gray-700">"${evidence.cv_sentence}"</div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                            <div class="font-semibold text-blue-700 mb-1">💼 Job Requires:</div>
+                            <div class="text-gray-700">"${evidence.jd_sentence}"</div>
+                        </div>
+                    </div>
+                `;
+                evidenceDiv.appendChild(evidenceEl);
+            });
+        } else {
+            evidenceDiv.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="text-4xl mb-2">📊</div>
+                    <p class="text-gray-500">No detailed evidence analysis available</p>
+                    <p class="text-sm text-gray-400 mt-1">The analysis will show specific sentences from your CV and JD</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error loading skills:', error);
+        
+        // Show error messages with retry option
+        document.getElementById('matchedSkills').innerHTML = `
+            <div class="text-center py-6">
+                <div class="text-4xl mb-2">⚠️</div>
+                <p class="text-red-500 mb-2">Error loading matched skills</p>
+                <button onclick="loadSkills()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                    Retry
+                </button>
+            </div>
+        `;
+        
+        document.getElementById('missingSkills').innerHTML = `
+            <div class="text-center py-6">
+                <div class="text-4xl mb-2">⚠️</div>
+                <p class="text-red-500 mb-2">Error loading missing skills</p>
+                <button onclick="loadSkills()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                    Retry
+                </button>
+            </div>
+        `;
+        
+        document.getElementById('evidenceSection').innerHTML = `
+            <div class="text-center py-6">
+                <div class="text-4xl mb-2">⚠️</div>
+                <p class="text-red-500 mb-2">Error loading evidence analysis</p>
+                <button onclick="loadSkills()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                    Retry
+                </button>
+            </div>
+        `;
+        
+        // Reset metrics
+        document.getElementById('matchPercentage').textContent = '--%';
+        document.getElementById('cvSkillsCount').textContent = '--';
+        document.getElementById('jdSkillsCount').textContent = '--';
+        document.getElementById('matchProgressBar').style.width = '0%';
+    }
+}
+
+// Generate questions function - SIMPLIFIED VERSION without CSRF
+async function generateQuestions() {
+// Add this at the beginning of generateQuestions()
+document.getElementById('questionsSection').classList.add('hidden');
+document.getElementById('questionsList').innerHTML = `
+    <div class="text-center py-8">
+        <div class="loading-spinner mx-auto"></div>
+        <p class="mt-4 text-gray-600">AI is generating personalized questions...</p>
+        <p class="text-sm text-gray-400">This may take 10-30 seconds for the first time</p>
+    </div>
+`;
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    try {
+        button.innerHTML = '<div class="loading-spinner mx-auto" style="width: 20px; height: 20px; border-width: 2px;"></div> Generating Questions...';
+        button.disabled = true;
+        
+        console.log('Starting question generation for session:', sessionId);
+        
+        const response = await fetch(`/api/sessions/${sessionId}/generate-questions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error response:', errorText);
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Questions generated:', data);
+        
+        if (data.questions && data.questions.length > 0) {
+            displayQuestions(data.questions);
+        } else {
+            throw new Error('No questions were generated');
+        }
+        
+    } catch (error) {
+        console.error('Error generating questions:', error);
+        alert('Error generating questions: ' + error.message);
+    } finally {
+        // Always re-enable the button
+        button.innerHTML = '🎯 Generate Practice Questions';
+        button.disabled = false;
+    }
+}
+
+function displayQuestions(questions) {
+    const questionsSection = document.getElementById('questionsSection');
+    const questionsList = document.getElementById('questionsList');
+    
+    questionsList.innerHTML = '';
+    
+    if (questions && questions.length > 0) {
+        questions.forEach((q, index) => {
+            const questionEl = document.createElement('div');
+            questionEl.className = 'bg-gray-50 p-6 rounded-xl border border-gray-200';
+            questionEl.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="text-lg font-semibold text-gray-800">Q${index + 1}. ${q.question}</h4>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <strong class="text-gray-700">Focus:</strong>
+                        <span class="text-gray-600 ml-2">${q.focus}</span>
+                    </div>
+                    <div>
+                        <strong class="text-gray-700">Rationale:</strong>
+                        <span class="text-gray-600 ml-2">${q.rationale}</span>
+                    </div>
+                </div>
+            `;
+            questionsList.appendChild(questionEl);
+        });
+        
+        questionsSection.classList.remove('hidden');
+        questionsSection.scrollIntoView({ behavior: 'smooth' });
+        
+    } else {
+        alert('No questions were generated. Please try again.');
+    }
+}
+
+// Load data when page opens
+document.addEventListener('DOMContentLoaded', function() {
+    loadSkills();
+});
+</script>
+
+<style>
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

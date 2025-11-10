@@ -1,0 +1,43 @@
+\documentclass{muratcan_cv}
+
+\setname{ {{ cv.full_name|title }} }{}
+\setmobile{ {{ cv.phone }} }
+\setmail{ {{ cv.email }} }
+\setthemecolor{teal}
+
+% Optionally add more set* commands for LinkedIn, Github, etc:
+% \setlinkedinaccount{ {{ cv.linkedin_url|default:"" }} }
+% \setgithubaccount{ {{ cv.github_url|default:"" }} }
+
+\begin{document}
+\headerview
+
+\section*{Summary}
+{{ cv.generated_summary|default:cv.professional_summary }}
+
+\section{Experience}
+{% for exp in work_experiences %}
+\noindent\textbf{ {{ exp.job_title }} } {% if exp.company_name %}- {{ exp.company_name }}{% endif %}
+  {% if exp.start_date %}({{ exp.start_date|date:"F Y" }}{% if exp.end_date %} -- {{ exp.end_date|date:"F Y" }}{% elif exp.is_current %} -- Present{% endif %}){% endif %}
+
+{% if exp.generated_bullets %}
+\begin{itemize}
+  {% for bullet in exp.generated_bullets.splitlines %}
+    \item {{ bullet }}
+  {% endfor %}
+\end{itemize}
+{% elif exp.job_description %}
+\begin{itemize}
+  \item {{ exp.job_description }}
+\end{itemize}
+{% endif %}
+{% endfor %}
+
+\section{Skills}
+\begin{itemize}
+{% for skill in skills %}
+  \item {{ skill.skill_name }}
+{% endfor %}
+\end{itemize}
+
+\end{document}

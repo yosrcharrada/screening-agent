@@ -3,6 +3,8 @@ venv/
 .env/
 __pycache__/
 *.pyc
+_env/
+_venv_temp/
 
 # Ignore IDE files
 .vscode/
@@ -10,3 +12,25 @@ __pycache__/
 venv/
 __pycache__/
 *.pyc
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# SQLite databases (local dev)
+db.sqlite3
+*.sqlite3
+
+# Environment / secrets
+.env
+*.env
+
+# Sandbox local secrets
+screening-agent-integration/.env
+screening-agent-integration/.venv/
+screening-agent-integration/db.sqlite3
+screening-agent-integration/*.sqlite3

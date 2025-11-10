@@ -1,0 +1,55 @@
+{% extends 'cv_gen/base.html' %}
+
+{% block title %}Generating CV - CV Generator{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">✨ Generating Your CV</h2>
+        <p class="text-xl text-gray-600">Using AI to create professional content...</p>
+    </div>
+
+    <!-- Loading Card -->
+    <div class="bg-white rounded-2xl shadow-xl p-12">
+        <div class="text-center space-y-8">
+            <!-- Large Spinner -->
+            <div class="flex justify-center">
+                <div class="loading-spinner" style="width: 80px; height: 80px; border-width: 6px;"></div>
+            </div>
+
+            <!-- Status Messages -->
+            <div class="space-y-4">
+                <h3 class="text-2xl font-semibold text-gray-800">Processing Your Information</h3>
+                <p class="text-lg text-gray-600">This may take 30-60 seconds...</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div class="space-y-4 mt-8">
+                <div class="flex items-center justify-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">✓</div>
+                    <span class="text-gray-700">Analyzing your information</span>
+                </div>
+                <div class="flex items-center justify-center gap-3">
+                    <div class="loading-spinner" style="width: 32px; height: 32px; border-width: 2px;"></div>
+                    <span class="text-gray-700">Retrieving professional examples</span>
+                </div>
+                <div class="flex items-center justify-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center">⏳</div>
+                    <span class="text-gray-700">Generating content with AI</span>
+                </div>
+                <div class="flex items-center justify-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center">⏳</div>
+                    <span class="text-gray-700">Validating quality</span>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mt-8">
+                <p class="text-blue-800 font-semibold">💡 Did you know?</p>
+                <p class="text-blue-700 mt-2">Your CV is being generated using real examples from 8,686 professional resumes. This ensures professional quality!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

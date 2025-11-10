@@ -44,7 +44,17 @@
                     </a>
 
                     <a href="/results/1/" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if '/results/' in request.path %}bg-blue-800{% endif %}">Results</a>
+<<<<<<< Updated upstream
                      {% if user.is_authenticated %}
+=======
+                    <!-- New Job Hunt link (visible to everyone) -->
+                    <a href="{% url 'admin:index' %}" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if '/admin/' in request.path %}bg-blue-800{% endif %}">
+                        Job Hunt
+                    </a>
+                    
+                    <!-- User Section -->
+                    {% if user.is_authenticated %}
+>>>>>>> Stashed changes
                     <div class="flex items-center space-x-4 border-l border-blue-500 pl-4 ml-4">
                         <span class="text-blue-100">Welcome, {{ user.first_name|default:user.username }}</span>
                         <form method="post" action="{% url 'logout' %}">

@@ -1,7 +1,4 @@
-<<<<<<< Updated upstream
 import os
-
-from api.ml_extractor import get_universal_cv_extractor
 from .speech_analysis import transcribe, highlight_fillers, check_ffmpeg
 import tempfile
 from django.http import JsonResponse
@@ -14,9 +11,6 @@ import os
 import os
 from pydub import AudioSegment
 from .cv_analyzer import cv_analyzer
-import re
-from .score_calculator import score_calculator
-from .llm_service import llm_service
 
 # Tell pydub where ffmpeg and ffprobe are
 from pydub import AudioSegment
@@ -27,47 +21,18 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .models import CustomUser, InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult
-from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer
+from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult, UserProfile, JobOffer, JobNotification
+from .serializers import InterviewSessionSerializer, SkillMatchResultSerializer, QuestionSetSerializer, TranscriptSerializer, ScoreResultSerializer, UserProfileSerializer, JobOfferSerializer, JobNotificationSerializer
 from .speech_analysis import transcribe, highlight_fillers
-=======
-# Import Django utilities to render templates and redirect users after actions
-from django.shortcuts import render, redirect
+from .job_scraper import job_scraper
+from .job_matcher import job_matcher
+from .email_service import email_service
 
-# DRF (Django REST Framework) decorators/helpers to define API endpoints and build JSON responses
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
->>>>>>> Stashed changes
-
-# Import your database models (custom user, sessions, skill results, question sets, transcripts, scores)
-from .models import InterviewSession, SkillMatchResult, QuestionSet, Transcript, ScoreResult, CustomUser
-
-# Import DRF serializers (convert model instances <-> JSON)
-from .serializers import (
-    InterviewSessionSerializer,
-    SkillMatchResultSerializer,
-    QuestionSetSerializer,
-    TranscriptSerializer,
-    ScoreResultSerializer,
-)
-
-# XAI glue: attaches an XAI explanation to each generated question
-from .xai_integration import attach_xai_to_questions
-
-# Utilities for parsing inputs (PDF extraction, URL fetch, file validation)
 from .utils import extract_text_from_pdf, fetch_content_from_url, validate_pdf_file
-<<<<<<< Updated upstream
 from django.utils import timezone
-=======
 
-# Skill-gap analyzer (your existing analyzer used on the Skill Gap page)
-from .analysis import skill_analyzer
->>>>>>> Stashed changes
-
-# Standard library imports used across endpoints
+# views.py - Add these imports at the top
 import os
-<<<<<<< Updated upstream
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
@@ -75,8 +40,7 @@ from django.core.files.base import ContentFile
 import time
 # Add this to your views.py
 import tempfile
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
+# In views.py - replace analyze_speech function
 
 from .file_processor import file_processor
 import tempfile
@@ -106,8 +70,6 @@ import os
 from .file_processor import file_processor
 import tempfile
 import os
-from django.shortcuts import redirect
-
 
 from .analysis import dynamic_skill_analyzer  # Import your existing analyzer
 
@@ -134,405 +96,9 @@ from .models import QuestionSet
 
 from .xai_question_generator import xai_question_generator
 import json
-from .speech_analysis import transcribe, highlight_fillers, check_ffmpeg
-import os
-import tempfile
-import traceback
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import spacy
-nlp = spacy.load("en_core_web_lg")
-import os
-import tempfile
-import traceback
-import cv2
-from deepface import DeepFace
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
-
-
-@api_view(['GET'])
-def test_llm_directly(request):
-    """Test LLM directly to see if it works"""
-    try:
-        from .llm_service import llm_service
-        
-        test_data = {
-            "final_score": 75.5,
-            "subscores": {
-                "content": {"score": 80},
-                "delivery": {"score": 70}, 
-                "communication": {"score": 75}
-            }
-        }
-        
-        logger.info("🧪 Testing LLM directly...")
-        explanation = llm_service.generate_natural_explanation(test_data)
-        
-        return Response({
-            "success": True,
-            "llm_model": llm_service.fast_model,
-            "explanation": explanation,
-            "message": "LLM is working!"
-        })
-        
-    except Exception as e:
-        return Response({
-            "success": False,
-            "error": str(e),
-            "message": "LLM failed"
-        }, status=500)
-=======
-import json
-import subprocess
-import tempfile
-import time
-import re
-import logging
-
-# HTTP helpers for non-DRF JSON and CSRF controls
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
-# File upload/storage helpers if needed later
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-
-# Auth helpers (login/logout/permissions), messages, and DB error handling
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db import IntegrityError
-
-# PDF reader for CV parsing during signup via PDF upload
-import PyPDF2
-
-# Question generator that produces interview questions
-from .question_generator import ai_question_generator
-
-# Initialize a module-level logger
-logger = logging.getLogger(__name__)
-
->>>>>>> Stashed changes
-
-# -----------------------------
-# Helper: CV info extraction
-# -----------------------------
-def extract_info_from_cv(cv_text):
-<<<<<<< Updated upstream
-    """Extract information from CV using UNIVERSAL parser"""
-    try:
-        extractor = get_universal_cv_extractor()  # ← Use universal extractor
-        result = extractor.extract_all_info(cv_text)
-        
-        logger.info(f"🎯 UNIVERSAL CV Extraction Result: {result}")
-=======
-    """
-    Extract basic user info from a CV using your ML extractor.
-    If the extractor fails, return empty/default fields.
-    """
-    try:
-        # Lazy import to avoid heavy initialization at module load
-        from .ml_extractor import get_cv_extractor
-        extractor = get_cv_extractor()
-        result = extractor.extract_all_info(cv_text)
-        logger.info(f"CV Extraction Result: {result}")
->>>>>>> Stashed changes
-        return result
-    except Exception as e:
-<<<<<<< Updated upstream
-        logger.error(f"❌ UNIVERSAL CV extraction error: {e}")
-=======
-        logger.error(f"CV extraction error: {e}")
->>>>>>> Stashed changes
-        return {
-            "first_name": "",
-            "last_name": "",
-            "email": "",
-            "phone_number": "",
-        }
-
-
-# -----------------------------
-# Auth + Signup (manual and CV-based)
-# -----------------------------
-def signup_view(request):
-    """
-    Signup page that supports:
-    - Manual registration (fields form)
-    - CV PDF upload to auto-fill fields (client can then edit/confirm)
-    """
-    extracted_data = None
-    error = None
-
-    if request.method == 'POST':
-        # Manual registration submit
-        if 'manual_submit' in request.POST:
-            first_name = request.POST.get('first_name', '').strip()
-            last_name = request.POST.get('last_name', '').strip()
-            email = request.POST.get('email', '').strip().lower()
-            phone_number = request.POST.get('phone_number', '').strip()
-            password1 = request.POST.get('password1')
-            password2 = request.POST.get('password2')
-
-            if not all([first_name, last_name, email, password1, password2]):
-                error = "All fields are required"
-            elif password1 != password2:
-                error = "Passwords don't match"
-            elif len(password1) < 8:
-                error = "Password must be at least 8 characters long"
-            else:
-                try:
-                    user = CustomUser.objects.create_user(
-                        username=email,
-                        email=email,
-                        password=password1,
-                        first_name=first_name,
-                        last_name=last_name,
-                        phone_number=phone_number,
-                        registration_method='manual'
-                    )
-                    login(request, user)
-                    messages.success(request, f"Welcome {first_name}! Your account has been created successfully.")
-                    return redirect('upload')
-                except IntegrityError:
-                    error = "A user with this email already exists"
-                except Exception as e:
-                    error = f"An error occurred: {str(e)}"
-
-        # CV upload to prefill form (no user created yet)
-        elif 'cv_submit' in request.POST:
-            cv_file = request.FILES.get('cv_file')
-            if cv_file:
-                try:
-                    if not cv_file.name.lower().endswith('.pdf'):
-                        error = "Please upload a PDF file"
-                    else:
-                        pdf_reader = PyPDF2.PdfReader(cv_file)
-                        cv_text = ""
-                        for page in pdf_reader.pages:
-                            text = page.extract_text()
-                            if text:
-                                cv_text += text + "\n"
-
-                        if not cv_text.strip():
-                            error = "Could not extract text from the PDF file"
-                        else:
-                            extracted_data = extract_info_from_cv(cv_text)
-                            request.session['cv_text'] = cv_text
-                            request.session['extracted_data'] = extracted_data
-                except Exception as e:
-                    error = f"Error processing CV: {str(e)}"
-            else:
-                error = "Please select a PDF file"
-
-    return render(request, 'signup.html', {
-        'extracted_data': extracted_data,
-        'error': error
-    })
-
-
-def finalize_cv_signup(request):
-    """
-    Finalize account creation after the user reviews/edits fields pre-filled from their CV.
-    """
-    error = None
-
-    if request.method == 'POST':
-        extracted_data = request.session.get('extracted_data', {})
-        cv_text = request.session.get('cv_text', '')
-
-        first_name = request.POST.get('first_name', extracted_data.get('first_name', '')).strip()
-        last_name = request.POST.get('last_name', extracted_data.get('last_name', '')).strip()
-        email = request.POST.get('email', extracted_data.get('email', '')).strip().lower()
-        phone_number = request.POST.get('phone_number', extracted_data.get('phone_number', '')).strip()
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-
-        if not all([first_name, last_name, email, password1, password2]):
-            error = "All fields are required"
-        elif password1 != password2:
-            error = "Passwords don't match"
-        elif len(password1) < 8:
-            error = "Password must be at least 8 characters long"
-        else:
-            try:
-                user = CustomUser.objects.create_user(
-                    username=email,
-                    email=email,
-                    password=password1,
-                    first_name=first_name,
-                    last_name=last_name,
-                    phone_number=phone_number,
-                    cv_text=cv_text,
-                    registration_method='cv'
-                )
-                login(request, user)
-
-                if 'cv_text' in request.session:
-                    del request.session['cv_text']
-                if 'extracted_data' in request.session:
-                    del request.session['extracted_data']
-
-                messages.success(request, f"Welcome {first_name}! Your account has been created from your CV.")
-                return redirect('upload')
-            except IntegrityError:
-                error = "A user with this email already exists"
-            except Exception as e:
-                error = f"An error occurred: {str(e)}"
-
-    if error:
-        messages.error(request, error)
-    return redirect('signup')
-
-
-def login_view(request):
-    """
-    Simple email/password login form.
-    """
-    if request.method == 'POST':
-        email = request.POST.get('email', '').strip().lower()
-        password = request.POST.get('password')
-
-        if not email or not password:
-            return render(request, 'login.html', {'error': 'Please enter both email and password'})
-
-        user = authenticate(request, username=email, password=password)
-
-        if user is not None:
-            login(request, user)
-            messages.success(request, f"Welcome back, {user.first_name}!")
-            return redirect('upload')
-        else:
-            return render(request, 'login.html', {'error': 'Invalid email or password'})
-
-    return render(request, 'login.html')
-
-
-def logout_view(request):
-    """
-    Log the user out and return to the login page.
-    """
-    logout(request)
-    messages.success(request, "You have been logged out successfully.")
-    return redirect('login')
-@login_required
-@api_view(['GET'])
-def get_latest_score(request, session_id):
-    """Get the latest score for a session"""
-    try:
-        latest_score = ScoreResult.objects.filter(session_id=session_id).order_by('-created_at').first()
-        
-        if not latest_score:
-            return Response({"error": "No scores found for this session"}, status=404)
-        
-        # Convert database model to scoring system format
-        score_data = {
-            "final_score": latest_score.overall_score,
-            "subscores": {
-                "content": {"score": latest_score.content_score},
-                "delivery": {"score": latest_score.delivery_score},
-                "communication": {"score": latest_score.communication_score}
-            },
-            "explanations": latest_score.evidence_quotes or [],
-            "next_actions": ["Practice more mock interviews", "Review your feedback"],  # You can customize these
-            "feature_breakdown": latest_score.feature_contributions or {},
-            "llm_explanation": f"Your overall score was {latest_score.overall_score}/100. Content: {latest_score.content_score}, Delivery: {latest_score.delivery_score}, Communication: {latest_score.communication_score}."
-        }
-        
-        return Response(score_data)
-        
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
-@login_required
-@api_view(['POST'])
-def calculate_score(request):
-    """Real scoring endpoint using the XAI scoring system"""
-    try:
-        session_id = request.data.get('session_id')
-        transcript_text = request.data.get('transcript_text', "")
-        wpm = float(request.data.get('wpm', 0))
-        filler_rate = float(request.data.get('filler_rate', 0)) / 100.0  # Convert percentage to decimal
-        answer_length_s = float(request.data.get('answer_length_s', 0))
-        question = request.data.get('question', "")
-        
-        logger.info(f"🎯 Starting score calculation for session {session_id}")
-        logger.info(f"📊 Input metrics - WPM: {wpm}, Filler: {filler_rate}, Length: {answer_length_s}s")
-        
-        # Get JD keywords from session
-        jd_keywords = []
-        if session_id:
-            try:
-                session = InterviewSession.objects.get(pk=session_id)
-                # Extract keywords from JD text (simplified - in production use proper NLP)
-                jd_words = re.findall(r'\b\w+\b', session.jd_text.lower())
-                jd_keywords = [word for word in jd_words if len(word) > 4][:10]  # Simple keyword extraction
-                logger.info(f"🔑 Extracted {len(jd_keywords)} JD keywords")
-            except InterviewSession.DoesNotExist:
-                logger.warning(f"Session {session_id} not found")
-        
-        # Calculate comprehensive score
-        score_result = score_calculator.calculate_comprehensive_score(
-            transcript=transcript_text,
-            wpm=wpm,
-            filler_rate=filler_rate,
-            answer_length_s=answer_length_s,
-            jd_keywords=jd_keywords,
-            question=question
-        )
-        
-        # Save to database if session exists
-        if session_id:
-            try:
-                session = InterviewSession.objects.get(pk=session_id)
-                score_db = ScoreResult.objects.create(
-                    session=session,
-                    content_score=score_result['subscores']['content']['score'],
-                    delivery_score=score_result['subscores']['delivery']['score'],
-                    communication_score=score_result['subscores']['communication']['score'],
-                    overall_score=score_result['final_score'],
-                    feature_contributions=score_result['feature_breakdown'],
-                    evidence_quotes=score_result['explanations']
-                )
-                logger.info(f"✅ Score saved to database: {score_db.id}")
-            except InterviewSession.DoesNotExist:
-                logger.warning(f"Session {session_id} not found, score not saved to database")
-        
-        return Response(score_result)
-        
-    except Exception as e:
-        logger.error(f"❌ Score calculation error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return Response({
-            "error": f"Score calculation failed: {str(e)}",
-            "final_score": 0,
-            "subscores": {
-                "content": {"score": 0, "weight": 0.45},
-                "delivery": {"score": 0, "weight": 0.35},
-                "communication": {"score": 0, "weight": 0.20}
-            },
-            "explanations": ["Scoring system temporarily unavailable"],
-            "next_actions": ["Please try again later"]
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-def get_jd_keywords_from_session(session_id):
-    """Extract JD keywords from session for scoring"""
-    try:
-        session = InterviewSession.objects.get(pk=session_id)
-        # Simple keyword extraction - you can enhance this
-        jd_words = re.findall(r'\b\w+\b', session.jd_text.lower())
-        # Filter for meaningful keywords (longer words)
-        keywords = [word for word in jd_words if len(word) > 4]
-        return keywords[:15]  # Limit to top 15 keywords
-    except InterviewSession.DoesNotExist:
-        return []
-    
 # ADD THIS LOGGER
 logger = logging.getLogger(__name__)
 # Questions 
-@login_required
 @api_view(['POST'])
 def generate_questions_with_xai(request, session_id):
     """Generate questions with XAI explanations"""
@@ -592,7 +158,7 @@ def generate_questions_with_xai(request, session_id):
     except Exception as e:
         logger.error(f"❌ XAI question generation failed for session {session_id}: {str(e)}")
         return Response({"error": f"XAI question generation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-@login_required
+
 @api_view(['GET'])
 def get_xai_explanations(request, session_id):
     """Get XAI explanations for generated questions"""
@@ -644,7 +210,7 @@ def get_xai_explanations(request, session_id):
             "error": str(e),
             "xai_available": False
         }, status=500)
-@login_required
+
 @api_view(['POST'])
 def judge_questions_manual(request, session_id):
     """Manual trigger for LLM judge evaluation"""
@@ -682,7 +248,7 @@ def judge_questions_manual(request, session_id):
     except Exception as e:
         logger.error(f"❌ Manual judge evaluation failed: {e}")
         return Response({"error": str(e)}, status=500)
-@login_required
+
 @api_view(['GET'])
 def get_session_questions(request, session_id):
     """Get questions for a session, generate if they don't exist"""
@@ -715,7 +281,7 @@ def get_session_questions(request, session_id):
         return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-@login_required
+
 @api_view(['GET'])
 def get_session_questions(request, session_id):
     """Get questions for a session, generate if they don't exist"""
@@ -757,9 +323,9 @@ def get_session_questions(request, session_id):
     except Exception as e:
         logger.error(f"❌ Error getting questions for session {session_id}: {str(e)}")
         return Response({"error": f"Failed to get questions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-@login_required
+
 @api_view(['POST'])
+
 def generate_more_questions(request, session_id):
     """Generate additional questions for practice"""
     try:
@@ -842,7 +408,7 @@ def generate_questions(request, session_id):
     except Exception as e:
         logger.error(f"❌ Question generation failed for session {session_id}: {str(e)}")
         return Response({"error": f"Question generation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-@login_required    
+    
 @api_view(['GET'])
 def get_questions(request, session_id):
     """Get questions for a session"""
@@ -878,7 +444,7 @@ def get_questions(request, session_id):
 def cv_analysis_page(request):
     """Render the CV analysis page"""
     return render(request, 'cv_analysis.html')
-@login_required
+
 @api_view(['POST'])
 def analyze_cv_standalone(request):
     """
@@ -940,7 +506,7 @@ def analyze_cv_standalone(request):
     except Exception as e:
         logger.error(f"CV analysis error: {str(e)}")
         return Response({"error": f"Analysis failed: {str(e)}"}, status=500)
-@login_required
+
 @api_view(['POST'])
 def analyze_cv_with_jd(request):
     """
@@ -999,7 +565,6 @@ def analyze_cv_with_jd(request):
     except Exception as e:
         logger.error(f"Comprehensive CV analysis error: {str(e)}")
         return Response({"error": f"Analysis failed: {str(e)}"}, status=500)
-@login_required
 @api_view(['GET'])
 def get_cv_analysis_report(request, session_id):
     """
@@ -1057,7 +622,7 @@ def practice_view(request, session_id):
     except InterviewSession.DoesNotExist:
         return render(request, 'error.html', {'error': 'Session not found'})
 
-@login_required
+
 @api_view(['POST'])
 def parse_documents(request):
     """Handle all document types: files, text, and URLs"""
@@ -1163,32 +728,66 @@ def analyze_direct(request):
         logger.error(f"Direct analysis error: {str(e)}")
         return Response({"error": f"Analysis failed: {str(e)}"}, status=500)
 
+@csrf_exempt
+def analyze_speech(request):
+    """Endpoint to upload audio and get transcription, metrics, and filler hints"""
+    if request.method == "POST" and request.FILES.get("audio"):
+        audio_file = request.FILES["audio"]
+        ext = os.path.splitext(audio_file.name)[1].lower()
 
-# Helper function for internal score calculation
-def calculate_score_internal(session_id, transcript_text, wpm, filler_rate, answer_length_s, question):
-    """Internal function to calculate score without HTTP request"""
-    from django.http import HttpRequest
-    from rest_framework.request import Request
-    
-    # Create a mock request for the score calculator
-    mock_data = {
-        'session_id': session_id,
-        'transcript_text': transcript_text,
-        'wpm': wpm,
-        'filler_rate': filler_rate,
-        'answer_length_s': answer_length_s,
-        'question': question
-    }
-    
-    # Use the existing calculate_score view logic
-    request = HttpRequest()
-    request.method = 'POST'
-    request.data = mock_data
-    request.user = None  # You might need to handle authentication
-    
-    return calculate_score(Request(request))
+        temp_path = None
+        wav_path = None
+        try:
+            # Save uploaded file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                temp_path = tmp.name
+                for chunk in audio_file.chunks():
+                    tmp.write(chunk)
 
-@login_required
+            print(f"📁 Uploaded: {audio_file.name} → Temp: {temp_path} ({os.path.getsize(temp_path)} bytes)")
+
+            # Optional language parameter
+            language = request.POST.get("language", None)
+
+            # Convert to WAV for safe processing
+            wav_path = convert_to_wav(temp_path)
+
+            # Transcribe
+            result = transcribe(wav_path, language=language)
+            highlighted = highlight_fillers(result["transcript"], language=result["language"])
+
+            # Ensure numeric metrics
+            metrics = {
+                "wpm": float(result["metrics"].get("wpm", 0)),
+                "filler_pct": float(result["metrics"].get("filler_pct", 0)),
+                "duration_s": float(result["metrics"].get("duration_s", 0)),
+                "word_count": int(result["metrics"].get("word_count", 0))
+            }
+
+            print("🎯 Backend analysis result:", {"transcript": result["transcript"], "metrics": metrics})
+
+            return JsonResponse({
+                "success": True,
+                "transcript": result["transcript"],
+                "highlighted_fillers": highlighted,
+                "metrics": metrics,
+                "hints": result["hints"],
+                "language": result["language"]
+            })
+
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({"success": False, "error": str(e)})
+
+        finally:
+            # Cleanup temporary files
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+            if wav_path and os.path.exists(wav_path):
+                os.unlink(wav_path)
+
+    return JsonResponse({"success": False, "error": "No audio file uploaded"})
+
 @api_view(['GET'])
 def get_skills(request, session_id):
     """Get enhanced dynamic skill gap analysis"""
@@ -1269,7 +868,6 @@ from pydub import AudioSegment
 from pydub.utils import which
 from .utils import calculate_interview_score
 
-<<<<<<< Updated upstream
 @csrf_exempt
 def analyze_speech(request):
     if request.method == "POST" and request.FILES.get("audio"):
@@ -1278,8 +876,6 @@ def analyze_speech(request):
             from django.http import JsonResponse
             from .speech_analysis import transcribe, highlight_fillers, check_ffmpeg
             audio_file = request.FILES["audio"]
-            session_id = request.POST.get("session_id")
-            question = request.POST.get("question", "")
 
             # Save uploaded file
             ext = os.path.splitext(audio_file.name)[1].lower()
@@ -1298,71 +894,17 @@ def analyze_speech(request):
             result = transcribe(temp_path)
             highlighted = highlight_fillers(result["transcript"])
 
-            # ✅ ADD REAL SCORING SYSTEM HERE
-            score_data = None
-            if session_id:
-                try:
-                    # Get JD keywords from session
-                    jd_keywords = []
-                    try:
-                        session = InterviewSession.objects.get(pk=session_id)
-                        # Extract REAL JD keywords from the actual job description
-                        jd_words = re.findall(r'\b\w+\b', session.jd_text.lower())
-                        jd_keywords = [word for word in jd_words if len(word) > 4][:15]
-                        print(f"🎯 Using JD keywords: {jd_keywords}")
-                    except Exception as e:
-                        print(f"⚠️ Could not load session: {e}")
-                    
-                    # USE THE REAL SCORING SYSTEM
-                    score_data = score_calculator.calculate_comprehensive_score(
-                        transcript=result["transcript"],
-                        wpm=result["metrics"]["wpm"],
-                        filler_rate=result["metrics"]["filler_pct"] / 100.0,  # Convert % to decimal
-                        answer_length_s=result["metrics"]["duration_s"],
-                        jd_keywords=jd_keywords,
-                        question=question
-                    )
-                    
-                    print(f"🏆 REAL SCORE CALCULATED: {score_data['final_score']}/100")
-                    
-                    # Save to database
-                    try:
-                        session = InterviewSession.objects.get(pk=session_id)
-                        score_db = ScoreResult.objects.create(
-                            session=session,
-                            content_score=score_data['subscores']['content']['score'],
-                            delivery_score=score_data['subscores']['delivery']['score'],
-                            communication_score=score_data['subscores']['communication']['score'],
-                            overall_score=score_data['final_score'],
-                            feature_contributions=score_data['feature_breakdown'],
-                            evidence_quotes=score_data['explanations']
-                        )
-                        print(f"💾 Score saved to database with ID: {score_db.id}")
-                    except Exception as e:
-                        print(f"⚠️ Could not save score to database: {e}")
-                        
-                except Exception as score_error:
-                    logger.error(f"❌ Score calculation failed: {score_error}")
-                    # Continue without score data
+            # Clean up temp uploaded file
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
 
-            # Build response data
-            response_data = {
+            return JsonResponse({
                 "success": True,
                 "transcript": result["transcript"],
                 "highlighted_fillers": highlighted,
                 "metrics": result["metrics"],
                 "hints": result["hints"]
-            }
-            
-            # Add score data if available
-            if score_data:
-                response_data["score"] = score_data
-
-            # Clean up temp uploaded file
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-
-            return JsonResponse(response_data)
+            })
 
         except Exception as e:
             import traceback
@@ -1371,213 +913,40 @@ def analyze_speech(request):
 
     return JsonResponse({"success": False, "error": "No audio file"})
 
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-import os
-import tempfile
-import cv2
-from deepface import DeepFace
-from .speech_analysis import convert_webm_to_mp4
-import subprocess
-
-@csrf_exempt
-def analyze_video_emotions(request):
-    try:
-        video_file = request.FILES.get('video')
-        if not video_file:
-            return JsonResponse({
-                'dominant_emotion': 'neutral',
-                'hint': 'Detected emotion: neutral. No video uploaded.',
-                'frame_emotions': [],
-                'frame_hints': []
-            }, status=400)
-
-        # Save WebM temporarily
-        temp_input = tempfile.NamedTemporaryFile(delete=False, suffix=".webm")
-        for chunk in video_file.chunks():
-            temp_input.write(chunk)
-        temp_input.close()
-
-        # Convert WebM → MP4
-        temp_video = convert_webm_to_mp4(temp_input.name)
-
-        cap = cv2.VideoCapture(temp_video)
-        if not cap.isOpened():
-            raise ValueError("Unable to read video")
-
-        fps = cap.get(cv2.CAP_PROP_FPS) or 30
-        frame_interval = max(1, int(fps / 2))  # analyze 2 frames/sec
-
-        emotions = []
-        frame_emotions = []
-        frame_hints = []
-        frame_idx = 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            if frame_idx % frame_interval == 0:
-                try:
-                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    analysis = DeepFace.analyze(
-                        rgb_frame,
-                        actions=['emotion'],
-                        enforce_detection=False
-                    )
-
-                    dominant = None
-                    if isinstance(analysis, list) and len(analysis) > 0:
-                        dominant = analysis[0].get('dominant_emotion')
-                    elif isinstance(analysis, dict):
-                        dominant = analysis.get('dominant_emotion')
-
-                    if dominant:
-                        dominant = dominant.lower()
-                        emotions.append(dominant)
-                        frame_emotions.append(dominant)
-                        frame_hints.append(get_hint_for_emotion(dominant))
-                        print(f"Frame {frame_idx}: detected {dominant}")
-                    else:
-                        frame_emotions.append("neutral")
-                        frame_hints.append(get_hint_for_emotion("neutral"))
-                        print(f"Frame {frame_idx}: no face detected")
-                except Exception as e:
-                    frame_emotions.append("neutral")
-                    frame_hints.append(get_hint_for_emotion("neutral"))
-                    print(f"Frame skipped: {e}")
-
-            frame_idx += 1
-
-        cap.release()
-        os.remove(temp_input.name)
-        os.remove(temp_video)
-
-        # Determine the most frequent emotion
-        if not emotions:
-            dominant_emotion = "neutral"
-        else:
-            dominant_emotion = max(set(emotions), key=emotions.count)
-
-        # Map dominant emotion to hint
-        hint_message = get_hint_for_emotion(dominant_emotion)
-
-        return JsonResponse({
-            'dominant_emotion': dominant_emotion,
-            'hint': f"Detected emotion is {dominant_emotion}. {hint_message}",
-            'frame_emotions': frame_emotions,
-            'frame_hints': frame_hints
-        })
-
-    except subprocess.CalledProcessError:
-        return JsonResponse({
-            'dominant_emotion': 'neutral',
-            'hint': 'FFmpeg conversion failed.',
-            'frame_emotions': [],
-            'frame_hints': []
-        }, status=500)
-    except Exception as e:
-        return JsonResponse({
-            'dominant_emotion': 'neutral',
-            'hint': f"Error: {str(e)}",
-            'frame_emotions': [],
-            'frame_hints': []
-        }, status=500)
-
-
-# -------------------------
-# Map emotion → hint
-# -------------------------
-def get_hint_for_emotion(emotion):
-    hints_dict = {
-        "happy": "You look confident and engaged — great energy for communication!",
-        "sad": "Try smiling more or lifting your tone to project enthusiasm.",
-        "angry": "Your expression seems tense — relax your face and tone for calm delivery.",
-        "fearful": "You appear anxious — take a deep breath and maintain eye contact.",
-        "surprised": "Keep your expressions steady for a more composed appearance.",
-        "neutral": "Balanced and calm — maintain this confident look!",
-        "disgust": "You might seem uncomfortable — try relaxing your facial muscles."
-    }
-    return hints_dict.get(emotion, "Keep your expressions natural and expressive!")
-=======
-
-# -----------------------------
-# Audio transcription + scoring (stub)
-# -----------------------------
-@login_required
-@csrf_exempt
-def analyze_speech(request):
-    """
-    Accepts an audio file, runs a stub transcription and returns
-    transcript + basic delivery metrics + a simple score.
-    """
-    if request.method == 'POST' and request.FILES.get('audio'):
-        try:
-            audio_file = request.FILES['audio']
-
-            file_extension = '.webm'
-            if audio_file.name.endswith('.wav'):
-                file_extension = '.wav'
-            with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
-                for chunk in audio_file.chunks():
-                    tmp_file.write(chunk)
-                temp_path = tmp_file.name
-
-            from .speech_analysis import transcribe
-            result = transcribe(temp_path)
-
-            score_data = calculate_interview_score(result)
-
-            try:
-                os.unlink(temp_path)
-            except Exception:
-                pass
-
-            return JsonResponse({
-                'success': True,
-                'transcript': result['transcript'],
-                'metrics': result['metrics'],
-                'hints': result['hints'],
-                'score': score_data
-            })
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({'success': False, 'error': str(e)})
-
-    return JsonResponse({'success': False, 'error': 'No audio file'})
->>>>>>> Stashed changes
-
-
 def calculate_interview_score(result):
-    """
-    Very simple scoring logic combining content, delivery, and communication.
-    Replace later with your comprehensive scoring module.
-    """
+    """Simple scoring logic"""
     metrics = result.get('metrics', {})
     hints = result.get('hints', [])
-
+    
     wpm = metrics.get('wpm', 0)
     filler_pct = metrics.get('filler_pct', 0)
     word_count = metrics.get('word_count', 0)
-
+    
+    # Content score based on length
     content_score = min(100, (word_count / 30) * 100)
-
+    
+    # Delivery score based on WPM and fillers
+    wpm_score = 0
     if 120 <= wpm <= 160:
         wpm_score = 90
     elif 100 <= wpm <= 180:
         wpm_score = 70
     else:
         wpm_score = 50
+    
     filler_score = max(0, 100 - (filler_pct * 10))
+    
     delivery_score = (wpm_score + filler_score) / 2
-
+    
+    # Communication score based on hints
     positive_hints = len([h for h in hints if any(word in h.lower() for word in ['good', 'excellent', 'minimal'])])
     negative_hints = len([h for h in hints if any(word in h.lower() for word in ['too', 'slow', 'fast', 'many', 'longer'])])
+    
     communication_score = max(20, 80 - (negative_hints * 10) + (positive_hints * 5))
-
+    
+    # Overall score
     overall_score = round((content_score + delivery_score + communication_score) / 3)
-
+    
     return {
         'overall_score': overall_score,
         'content_score': round(content_score),
@@ -1588,31 +957,15 @@ def calculate_interview_score(result):
             'negative': [h for h in hints if any(word in h.lower() for word in ['too', 'slow', 'fast', 'many', 'longer'])]
         }
     }
-<<<<<<< Updated upstream
-@login_required
+
 @api_view(['POST'])
 def parse_cv_jd(request):
     """Parse CV and JD using pure dynamic extraction"""
-=======
-
-
-# -----------------------------
-# Parse CV + JD to create a session
-# -----------------------------
-@login_required
-@api_view(['POST'])
-def parse_cv_jd(request):
-    """
-    Accepts CV + JD in flexible formats (text/pdf/url), extracts text,
-    validates lengths, and creates an InterviewSession record.
-    """
->>>>>>> Stashed changes
     cv_type = request.POST.get('cv_type', 'text')
     jd_type = request.POST.get('jd_type', 'text')
-
+    
     cv_text = ""
     jd_text = ""
-<<<<<<< Updated upstream
     
     # Process CV
     if cv_type == 'text':
@@ -1621,65 +974,24 @@ def parse_cv_jd(request):
         cv_file = request.FILES.get('cv_file')
         if cv_file:
             cv_text = extract_text_from_pdf(cv_file)
-=======
-
-    # CV
-    if cv_type == 'text':
-        cv_text = request.POST.get('cv_text', '')
-        if not cv_text.strip():
-            return Response({"error": "Please provide CV text"}, status=status.HTTP_400_BAD_REQUEST)
-    elif cv_type == 'pdf':
-        cv_file = request.FILES.get('cv_file')
-        if cv_file:
-            if not validate_pdf_file(cv_file):
-                return Response({"error": "Please upload a valid PDF file"}, status=status.HTTP_400_BAD_REQUEST)
-            cv_text = extract_text_from_pdf(cv_file)
-            if cv_text.startswith("Error extracting PDF"):
-                return Response({"error": "Failed to process PDF file"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "No PDF file provided"}, status=status.HTTP_400_BAD_REQUEST)
->>>>>>> Stashed changes
     elif cv_type == 'url':
         cv_url = request.POST.get('cv_url', '')
         if cv_url:
             cv_text = fetch_content_from_url(cv_url)
-<<<<<<< Updated upstream
     
     # Process JD
     if jd_type == 'text':
         jd_text = request.POST.get('jd_text', '')
-=======
-            if cv_text.startswith("Error fetching URL"):
-                return Response({"error": "Failed to fetch content from URL"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "No CV URL provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-    # JD
-    if jd_type == 'text':
-        jd_text = request.POST.get('jd_text', '')
-        if not jd_text.strip():
-            return Response({"error": "Please provide Job Description text"}, status=status.HTTP_400_BAD_REQUEST)
->>>>>>> Stashed changes
     elif jd_type == 'url':
         jd_url = request.POST.get('jd_url', '')
         if jd_url:
             jd_text = fetch_content_from_url(jd_url)
-<<<<<<< Updated upstream
     
     # Validate
-=======
-            if jd_text.startswith("Error fetching URL"):
-                return Response({"error": "Failed to fetch job description from URL"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "No Job URL provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Validate content
->>>>>>> Stashed changes
     if len(cv_text.strip()) < 10 or len(jd_text.strip()) < 10:
         return Response({"error": "Provided content is too short"}, status=status.HTTP_400_BAD_REQUEST)
-
+    
     # Create session
-<<<<<<< Updated upstream
     session_data = {
         'cv_text': cv_text,
         'jd_text': jd_text,
@@ -1687,29 +999,18 @@ def parse_cv_jd(request):
         'jd_type': jd_type
     }
     
-=======
-    session_data = {'cv_text': cv_text, 'jd_text': jd_text}
->>>>>>> Stashed changes
     serializer = InterviewSessionSerializer(data=session_data)
     if serializer.is_valid():
         session = serializer.save()
         return Response({
-<<<<<<< Updated upstream
             "session_id": session.id, 
             "message": "CV and JD parsed successfully for dynamic analysis.",
-=======
-            "session_id": session.id,
-            "message": "CV and JD parsed successfully.",
-            "cv_type": cv_type,
-            "jd_type": jd_type,
->>>>>>> Stashed changes
             "cv_length": len(cv_text),
-            "jd_length": len(jd_text),
+            "jd_length": len(jd_text)
         }, status=status.HTTP_201_CREATED)
-
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-<<<<<<< Updated upstream
-@login_required
+
 @api_view(['GET'])
 def get_skills(request, session_id):
     """Get enhanced dynamic skill gap analysis"""
@@ -1717,29 +1018,10 @@ def get_skills(request, session_id):
         session = InterviewSession.objects.get(pk=session_id)
         print(f"=== ENHANCED DYNAMIC ANALYSIS SESSION {session_id} ===")
         
-=======
-
-
-# -----------------------------
-# Skill Gap API (uses your existing analyzer)
-# -----------------------------
-@login_required
-@api_view(['GET'])
-def get_skills(request, session_id):
-    """
-    Run the skill analyzer for a given session and return analyzer output.
-    """
-    try:
-        session = InterviewSession.objects.get(pk=session_id)
-        print(f"=== ANALYZING SESSION {session_id} ===")
-        print(f"CV Text Length: {len(session.cv_text)}")
-        print(f"JD Text Length: {len(session.jd_text)}")
->>>>>>> Stashed changes
     except InterviewSession.DoesNotExist:
         return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
 
     try:
-<<<<<<< Updated upstream
         print("Starting enhanced dynamic analysis...")
         
         # Perform enhanced analysis
@@ -1754,15 +1036,9 @@ def get_skills(request, session_id):
         print(f"- Matched skills: {len(analysis_result.get('matched_skills', []))}")
         print(f"- Match percentage: {analysis_result.get('match_percentage', 0)}%")
         
-=======
-        print("Starting skill analysis...")
-        analysis_result = skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
-        print(f"Analysis completed: {len(analysis_result.get('matched_skills', []))} matched, {len(analysis_result.get('missing_skills', []))} missing")
-        print(f"Match percentage: {analysis_result.get('match_percentage', 0)}%")
->>>>>>> Stashed changes
         return Response(analysis_result)
+        
     except Exception as e:
-<<<<<<< Updated upstream
         print(f"ENHANCED ANALYSIS ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
@@ -1771,136 +1047,10 @@ def get_skills(request, session_id):
             "error": "Enhanced analysis failed",
             "details": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
-@login_required
+
 @api_view(['GET'])
 def get_concept_extraction_debug(request, session_id):
     """Debug endpoint to see extracted concepts"""
-=======
-        print(f"ANALYSIS ERROR: {str(e)}")
-        return get_skills_fallback(session)
-
-
-def get_skills_fallback(session):
-    """
-    Fallback skill analysis payload if the real analyzer fails.
-    """
-    stub_skill_data = {
-        "matched_skills": [
-            {"skill": "Python", "evidence_cv": "Built a Django web application.", "evidence_jd": "Looking for a Python developer."},
-            {"skill": "Project Management", "evidence_cv": "Led a team of 5.", "evidence_jd": "Must lead projects."}
-        ],
-        "missing_skills": [
-            {"skill": "Docker", "evidence_jd": "Experience with containerization is a plus."}
-        ],
-        "evidence": [
-            {"skill": "Python", "cv_sentence": "Built Django web applications for 3 years", "jd_sentence": "Python developer with framework experience required", "status": "matched"},
-            {"skill": "Docker", "cv_sentence": "No containerization experience mentioned", "jd_sentence": "Docker and containerization experience required", "status": "missing"}
-        ],
-        "cv_skill_count": 2,
-        "jd_skill_count": 3,
-        "match_percentage": 66.7
-    }
-
-    skill_result, created = SkillMatchResult.objects.get_or_create(
-        session=session,
-        defaults=stub_skill_data
-    )
-
-    response_data = {
-        'matched_skills': stub_skill_data['matched_skills'],
-        'missing_skills': stub_skill_data['missing_skills'],
-        'evidence': stub_skill_data['evidence'],
-        'cv_skill_count': 2,
-        'jd_skill_count': 3,
-        'match_percentage': 66.7
-    }
-    return Response(response_data)
-
-
-# -----------------------------
-# Question Generation + XAI
-# -----------------------------
-@login_required
-@api_view(['POST'])
-@csrf_exempt
-def generate_questions(request, session_id):
-    """
-    Generate a set of interview questions for the given session and attach XAI.
-    """
-    try:
-        session = InterviewSession.objects.get(pk=session_id)
-    except InterviewSession.DoesNotExist:
-        logger.error(f"Session not found: {session_id}")
-        return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
-
-    try:
-        skill_gap_analysis = skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
-
-        questions = ai_question_generator.generate_interview_questions(
-            session.cv_text,
-            session.jd_text,
-            skill_gap_analysis,
-            num_questions=6
-        )
-
-        questions = attach_xai_to_questions(session.cv_text, session.jd_text, questions)
-
-        QuestionSet.objects.create(session=session, questions=questions)
-
-        return Response({
-            "session_id": session_id,
-            "questions": questions,
-            "total_questions": len(questions),
-            "generation_method": "ai_powered_with_xai"
-        })
-    except Exception as e:
-        logger.error(f"Question generation failed for session {session_id}: {str(e)}")
-        return Response({"error": f"Question generation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@login_required
-@api_view(['GET'])
-def get_session_questions(request, session_id):
-    """
-    Return the most recently generated QuestionSet (with XAI) for the session.
-    """
-    try:
-        # Use id for ordering (some schemas may not include created_at)
-        question_set = QuestionSet.objects.filter(session_id=session_id).order_by('-id').first()
-        if question_set:
-            return Response({
-                "questions": question_set.questions,
-                "total_questions": len(question_set.questions),
-                "session_id": session_id
-            })
-        else:
-            return Response({
-                "questions": [],
-                "total_questions": 0,
-                "session_id": session_id,
-                "message": "No questions found. Please generate questions first."
-            }, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        logger.error(f"Error getting questions for session {session_id}: {str(e)}")
-        return Response({"error": f"Failed to get questions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@login_required
-@api_view(['GET'])
-def get_questions(request, session_id):
-    """
-    Backward-compatible alias used by older front-end code.
-    """
-    return get_session_questions(request, session_id)
-
-
-@login_required
-@api_view(['POST'])
-def generate_more_questions(request, session_id):
-    """
-    Generate an additional set of questions and return it.
-    """
->>>>>>> Stashed changes
     try:
         session = InterviewSession.objects.get(pk=session_id)
         
@@ -1916,8 +1066,7 @@ def generate_more_questions(request, session_id):
         
     except InterviewSession.DoesNotExist:
         return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
-<<<<<<< Updated upstream
-@login_required
+
 @api_view(['GET'])
 def get_questions(request, session_id):
     """Generate questions based on dynamic concept analysis"""
@@ -2000,45 +1149,16 @@ def get_questions(request, session_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-=======
 
-    try:
-        skill_gap_analysis = skill_analyzer.analyze_skill_gap(session.cv_text, session.jd_text)
-
-        questions = ai_question_generator.generate_interview_questions(
-            session.cv_text,
-            session.jd_text,
-            skill_gap_analysis,
-            num_questions=6
-        )
-
-        questions = attach_xai_to_questions(session.cv_text, session.jd_text, questions)
-
-        QuestionSet.objects.create(session=session, questions=questions)
-
-        return Response({
-            "questions": questions,
-            "total_questions": len(questions),
-            "session_id": session_id
-        })
-    except Exception as e:
-        return Response({"error": f"Question generation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# -----------------------------
-# Text-only transcription (stub) and scoring (stub)
-# -----------------------------
->>>>>>> Stashed changes
-@login_required
 @api_view(['POST'])
 def transcribe_audio(request):
-    """
-    Stub endpoint that accepts plain text instead of audio and returns basic metrics.
-    """
+    """Stub endpoint for /transcribe. For now, just accepts text and returns metrics."""
     user_speech_text = request.data.get('text', "")
 
+    # STUB ANALYSIS - Replace with real ASR/NLP logic later
     word_count = len(user_speech_text.split())
-    wpm = (word_count / 0.5) if user_speech_text else 0  # assume 30 seconds -> 0.5 minutes
+    # Assuming a 30-second answer for this stub
+    wpm = (word_count / 0.5) if user_speech_text else 0
     filler_count = user_speech_text.lower().count('uh') + user_speech_text.lower().count('um')
 
     stub_transcript_data = {
@@ -2047,22 +1167,16 @@ def transcribe_audio(request):
         "filler_words": filler_count,
         "hints": ["Try to use more metrics.", "Good structure, but slow down a bit."] if wpm > 170 else ["Good pacing!", "Consider adding specific examples."]
     }
-
+    
     return Response(stub_transcript_data)
-<<<<<<< Updated upstream
-=======
 
-
->>>>>>> Stashed changes
-@login_required
 @api_view(['POST'])
 def calculate_score(request):
-    """
-    Stub scoring endpoint that stores a ScoreResult when session_id is provided.
-    """
+    """Stub endpoint for /score. Returns explainable scores."""
     session_id = request.data.get('session_id')
     transcript_text = request.data.get('transcript_text', "")
 
+    # STUB SCORING LOGIC - Replace with Tessnim's XAI model later
     stub_score_data = {
         "content_score": 38,
         "delivery_score": 28,
@@ -2078,7 +1192,7 @@ def calculate_score(request):
             {"quote": "Then I implemented the solution", "feature": "STAR method", "impact": "+3 points"}
         ]
     }
-
+    
     if session_id:
         try:
             session = InterviewSession.objects.get(pk=session_id)
@@ -2087,103 +1201,265 @@ def calculate_score(request):
             return Response(serializer.data)
         except InterviewSession.DoesNotExist:
             return Response({"error": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
-
+    
+    # If no session, just return the stub data
     return Response(stub_score_data)
-<<<<<<< Updated upstream
-=======
 
-
-# -----------------------------
-# PDF Report (stub)
-# -----------------------------
->>>>>>> Stashed changes
-@login_required
 @api_view(['GET'])
 def generate_report(request, session_id):
-    """
-    Placeholder endpoint that pretends to generate a PDF and returns a mock URL.
-    """
+    """Stub endpoint for /report. Triggers PDF generation and returns a URL."""
+    # This is a placeholder. WP3 will implement the real PDF generation.
     mock_pdf_url = f"http://127.0.0.1:8000/api/report/{session_id}/download.pdf"
     return Response({"pdf_url": mock_pdf_url})
 
+# A simple view to serve the mock PDF for testing
+from django.http import FileResponse
+import os
 
-<<<<<<< Updated upstream
-=======
-from django.http import FileResponse  # kept for future real PDF response
-
-
-@login_required
->>>>>>> Stashed changes
 def serve_mock_pdf(request, session_id):
-    """
-    Serve a mock file response to simulate a downloadable PDF.
-    """
+    """Serve a mock PDF for testing purposes."""
+    # For now, we'll just return a JSON response since we don't have a real PDF
     return Response({
         "message": "PDF report would be generated here",
         "session_id": session_id,
         "status": "mock_response"
     })
 
-<<<<<<< Updated upstream
-=======
-
-# -----------------------------
-# Simple HTML pages (WP2 frontend)
-# -----------------------------
-@login_required
->>>>>>> Stashed changes
 def test_page(request):
-    """
-    Simple test page that can call various API endpoints from the browser.
-    """
+    """Simple page to test all API endpoints"""
     return render(request, 'test.html')
 
 
-<<<<<<< Updated upstream
 
 # Add these new views for WP2 pages
-=======
-@login_required
->>>>>>> Stashed changes
 def upload_page(request):
-    """
-    Render the Upload page where the user provides CV + JD.
-    """
+    """Render the upload page"""
     return render(request, 'upload.html')
 
-<<<<<<< Updated upstream
-=======
-
-@login_required
->>>>>>> Stashed changes
 def skill_gap_page(request, session_id):
-    """
-    Render the Skill Gap page for a specific session.
-    """
+    """Render the skill gap page"""
     return render(request, 'skill_gap.html', {'session_id': session_id})
 
-<<<<<<< Updated upstream
-=======
-
-@login_required
->>>>>>> Stashed changes
 def practice_page(request, session_id):
-    """
-    Render the Practice page for a specific session.
-    Frontend will call:
-      - POST /api/sessions/<id>/generate-questions
-      - GET  /api/sessions/<id>/practice-questions
-      and render q.xai.rationale in the UI.
-    """
+    """Render the practice page"""
     return render(request, 'practice.html', {'session_id': session_id})
 
-<<<<<<< Updated upstream
-=======
-
-@login_required
->>>>>>> Stashed changes
 def results_page(request, session_id):
-    """
-    Render the Results page for a specific session.
-    """
+    """Render the results page"""
     return render(request, 'results.html', {'session_id': session_id})
+
+
+# Job Notification Feature Views
+@api_view(['POST'])
+def create_user_profile(request):
+    """Create a new user profile for job notifications"""
+    try:
+        serializer = UserProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            user_profile = serializer.save()
+            logger.info(f"Created new user profile: {user_profile.email}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error creating user profile: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def manage_user_profile(request, email):
+    """Get, update, or delete a user profile"""
+    try:
+        user_profile = UserProfile.objects.get(email=email)
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(f"Updated user profile: {email}")
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        user_profile.delete()
+        logger.info(f"Deleted user profile: {email}")
+        return Response({"message": "User profile deleted"}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+def search_jobs_manually(request):
+    """Manually search for jobs with given criteria"""
+    try:
+        keywords = request.data.get('keywords', [])
+        location = request.data.get('location', '')
+        limit = request.data.get('limit', 20)
+        
+        if not keywords:
+            return Response({"error": "Keywords are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Fetch jobs
+        jobs = job_scraper.fetch_jobs(keywords=keywords, location=location, limit=limit)
+        
+        return Response({
+            "total": len(jobs),
+            "jobs": jobs
+        })
+    except Exception as e:
+        logger.error(f"Error in manual job search: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_user_notifications(request, email):
+    """Get job notifications for a user"""
+    try:
+        user_profile = UserProfile.objects.get(email=email)
+        notifications = JobNotification.objects.filter(user_profile=user_profile).order_by('-sent_at')[:50]
+        serializer = JobNotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error getting notifications: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def mark_notification_read(request, notification_id):
+    """Mark a notification as read"""
+    try:
+        notification = JobNotification.objects.get(id=notification_id)
+        notification.is_read = True
+        notification.save()
+        return Response({"message": "Notification marked as read"})
+    except JobNotification.DoesNotExist:
+        return Response({"error": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def send_test_email(request):
+    """Send a test email to verify email configuration"""
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        success = email_service.send_test_email(email)
+        
+        if success:
+            return Response({"message": "Test email sent successfully"})
+        else:
+            return Response({"error": "Failed to send test email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        logger.error(f"Error sending test email: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_recent_jobs(request):
+    """Get recently fetched jobs"""
+    try:
+        limit = int(request.GET.get('limit', 50))
+        jobs = JobOffer.objects.all()[:limit]
+        serializer = JobOfferSerializer(jobs, many=True)
+        return Response({
+            "total": jobs.count(),
+            "jobs": serializer.data
+        })
+    except Exception as e:
+        logger.error(f"Error getting recent jobs: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def trigger_job_matching(request, email):
+    """Manually trigger job matching and notification for a specific user"""
+    try:
+        user_profile = UserProfile.objects.get(email=email)
+        
+        # Get recent jobs
+        recent_jobs = JobOffer.objects.all()[:100]
+        
+        if not recent_jobs.exists():
+            return Response({"message": "No jobs available to match"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Find matching jobs
+        min_score = float(request.data.get('min_score', 40.0))
+        matches = job_matcher.find_matching_jobs(
+            user_profile=user_profile,
+            jobs=list(recent_jobs),
+            min_score=min_score
+        )
+        
+        if not matches:
+            return Response({"message": "No matching jobs found"})
+        
+        # Filter out already notified jobs
+        new_jobs = []
+        match_scores = {}
+        
+        for job, score in matches:
+            already_notified = JobNotification.objects.filter(
+                user_profile=user_profile,
+                job_offer=job
+            ).exists()
+            
+            if not already_notified:
+                new_jobs.append(job)
+                match_scores[job.id] = score
+        
+        if not new_jobs:
+            return Response({"message": "All matching jobs already notified"})
+        
+        # Send email
+        send_email = request.data.get('send_email', False)
+        if send_email:
+            success = email_service.send_job_notification(
+                user_profile=user_profile,
+                jobs=new_jobs,
+                match_scores=match_scores
+            )
+            
+            if success:
+                # Create notification records
+                for job in new_jobs:
+                    JobNotification.objects.create(
+                        user_profile=user_profile,
+                        job_offer=job,
+                        match_score=match_scores.get(job.id, 0)
+                    )
+                
+                return Response({
+                    "message": f"Email sent with {len(new_jobs)} job(s)",
+                    "jobs_count": len(new_jobs)
+                })
+            else:
+                return Response({"error": "Failed to send email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            # Just return matching jobs without sending email
+            job_details = []
+            for job in new_jobs[:10]:  # Limit to 10 for response
+                job_details.append({
+                    'title': job.title,
+                    'company': job.company,
+                    'match_score': match_scores.get(job.id, 0)
+                })
+            
+            return Response({
+                "message": f"Found {len(new_jobs)} matching job(s)",
+                "jobs": job_details,
+                "total_matches": len(new_jobs)
+            })
+        
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error in trigger_job_matching: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

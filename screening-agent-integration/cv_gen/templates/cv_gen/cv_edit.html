@@ -1,0 +1,97 @@
+{% extends 'cv_gen/base.html' %}
+
+{% block title %}Edit CV - {{ cv.full_name }} | CV Generator{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">✏️ Edit CV</h2>
+        <p class="text-xl text-gray-600">Update your CV information</p>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="bg-white rounded-2xl shadow-xl p-8">
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+
+            <!-- Personal Information Section -->
+            <div class="border-b-2 border-gray-200 pb-8">
+                <h3 class="text-2xl font-semibold mb-6 text-gray-800">👤 Personal Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <input type="text" name="full_name" value="{{ cv.full_name }}" required
+                               class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" value="{{ cv.email }}" required
+                               class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                        <input type="tel" name="phone" value="{{ cv.phone|default:'' }}"
+                               class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                        <input type="text" name="location" value="{{ cv.location|default:'' }}"
+                               class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Professional Information Section -->
+            <div class="border-b-2 border-gray-200 pb-8">
+                <h3 class="text-2xl font-semibold mb-6 text-gray-800">💼 Professional Information</h3>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Professional Headline</label>
+                        <input type="text" name="professional_headline" value="{{ cv.professional_headline }}" 
+                               placeholder="e.g., Senior Backend Developer" required
+                               class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Profession</label>
+                        <input type="text" name="profession" value="{{ cv.profession }}" 
+                               placeholder="e.g., Backend Developer" required
+                               class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Professional Summary</label>
+                        <textarea name="professional_summary" rows="4" placeholder="Write about your professional background..."
+                                  class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ cv.professional_summary|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Buttons -->
+            <div class="flex gap-4 justify-center pt-8">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
+                    💾 Save Changes
+                </button>
+                <a href="{% url 'cv_gen:cv_preview' cv.id %}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
+                    ← Back to Preview
+                </a>
+                <a href="{% url 'cv_gen:cv_list' %}" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
+                    📋 All CVs
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="mt-8 bg-blue-50 rounded-2xl p-8 border-2 border-blue-200">
+        <h3 class="text-xl font-semibold text-blue-800 mb-4">💡 Tips for Better Results</h3>
+        <ul class="text-blue-700 space-y-2">
+            <li>✅ Be specific in your professional headline (e.g., "Senior Python Developer" not just "Developer")</li>
+            <li>✅ Include relevant keywords for your profession</li>
+            <li>✅ Write a clear professional summary highlighting your strengths</li>
+            <li>✅ List your most relevant skills first</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

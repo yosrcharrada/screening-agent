@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - CV Generator{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Hero Section -->
+    <div class="text-center mb-16 py-16">
+        <h1 class="text-6xl font-bold text-gray-900 mb-6">Create Professional CVs with AI ✨</h1>
+        <p class="text-2xl text-gray-600 mb-8">Generate polished CVs powered by real professional examples and advanced AI</p>
+        
+        <a href="{% url 'cv_gen:cv_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-lg text-lg inline-block transition duration-200">
+            Get Started - Create Your First CV
+        </a>
+    </div>
+
+    <!-- Features -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div class="bg-white rounded-2xl shadow-lg p-8 border-2 border-blue-200">
+            <div class="text-4xl mb-4">🤖</div>
+            <h3 class="text-2xl font-semibold mb-3 text-gray-800">AI-Powered</h3>
+            <p class="text-gray-600">Advanced LLM generates professional content tailored to your experience</p>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-lg p-8 border-2 border-green-200">
+            <div class="text-4xl mb-4">📚</div>
+            <h3 class="text-2xl font-semibold mb-3 text-gray-800">8,686+ Examples</h3>
+            <p class="text-gray-600">Learn from real professional resumes across 23 industries</p>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-lg p-8 border-2 border-purple-200">
+            <div class="text-4xl mb-4">📄</div>
+            <h3 class="text-2xl font-semibold mb-3 text-gray-800">PDF Export</h3>
+            <p class="text-gray-600">Download professionally formatted CVs ready to send</p>
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="bg-blue-50 rounded-2xl p-12 border-2 border-blue-200 mb-16">
+        <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">How It Works</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mx-auto mb-4">1</div>
+                <h4 class="font-semibold text-gray-800 mb-2">Enter Your Info</h4>
+                <p class="text-gray-600 text-sm">Fill in your personal details and experience</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mx-auto mb-4">2</div>
+                <h4 class="font-semibold text-gray-800 mb-2">AI Analyzes</h4>
+                <p class="text-gray-600 text-sm">System retrieves similar professional examples</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mx-auto mb-4">3</div>
+                <h4 class="font-semibold text-gray-800 mb-2">Generate Content</h4>
+                <p class="text-gray-600 text-sm">LLM creates professional summaries & bullets</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mx-auto mb-4">4</div>
+                <h4 class="font-semibold text-gray-800 mb-2">Download PDF</h4>
+                <p class="text-gray-600 text-sm">Get your polished CV ready to send</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="text-center py-12">
+        <h2 class="text-4xl font-bold text-gray-900 mb-6">Ready to Create Your Professional CV?</h2>
+        <a href="{% url 'cv_gen:cv_create' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-10 rounded-lg text-lg inline-block transition duration-200">
+            Start Now - It's Free! 🚀
+        </a>
+    </div>
+</div>
+{% endblock %}

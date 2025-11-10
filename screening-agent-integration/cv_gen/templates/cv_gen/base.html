@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CV Generator - Create Professional CVs with AI{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-2xl font-bold">📄 CV Generator</h1>
+                <div class="flex items-center space-x-6">
+                    <!-- Navigation Links -->
+                    <a href="{% url 'cv_gen:home' %}" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if request.path == '/' %}bg-blue-800{% endif %}">Home</a>
+                    <a href="{% url 'cv_gen:cv_list' %}" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if 'list' in request.path %}bg-blue-800{% endif %}">My CVs</a>
+                    <a href="{% url 'cv_gen:cv_create' %}" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200 {% if 'create' in request.path %}bg-blue-800{% endif %}">Create CV</a>
+                    
+                    <!-- User Section -->
+                    {% if user.is_authenticated %}
+                    <div class="flex items-center space-x-4 border-l border-blue-500 pl-4 ml-4">
+                        <span class="text-blue-100">Welcome, {{ user.first_name|default:user.username }}</span>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-medium">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center space-x-4 border-l border-blue-500 pl-4 ml-4">
+                        <a href="{% url 'login' %}" class="hover:bg-blue-700 px-4 py-2 rounded-lg transition duration-200">
+                            Login
+                        </a>
+                        <a href="{% url 'signup' %}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-200 font-medium">
+                            Sign Up
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages Display -->
+    {% if messages %}
+    <div class="container mx-auto px-4 mt-4">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}bg-red-50 border-red-200 text-red-600{% else %}bg-green-50 border-green-200 text-green-600{% endif %} border rounded-md p-4 mb-4">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">📄 CV Generator</h3>
+                    <p class="text-gray-400">Create professional CVs using AI-powered generation with real examples.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="text-gray-400 space-y-2">
+                        <li><a href="{% url 'cv_gen:home' %}" class="hover:text-white">Home</a></li>
+                        <li><a href="{% url 'cv_gen:cv_list' %}" class="hover:text-white">My CVs</a></li>
+                        <li><a href="{% url 'cv_gen:cv_create' %}" class="hover:text-white">Create New</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Support</h3>
+                    <ul class="text-gray-400 space-y-2">
+                        <li><a href="#" class="hover:text-white">Contact</a></li>
+                        <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 CV Generator. All rights reserved. | Powered by AI + RAG</p>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

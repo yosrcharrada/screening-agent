@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Start Your Interview Preparation</h2>
+        <p class="text-xl text-gray-600">Upload your CV and Job Description in multiple formats</p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+        <form id="uploadForm" class="space-y-8" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- CV Section -->
+            <div class="space-y-6">
+                <label class="block text-2xl font-semibold text-gray-800">
+                    📄 Your CV
+                </label>
+                
+                <!-- CV Input Type Selector -->
+                <div class="flex space-x-4 border-b border-gray-200 pb-2">
+                    <button type="button" onclick="switchCVInput('text')" class="cv-tab tab-active px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
+                        📝 Paste Text
+                    </button>
+                    <button type="button" onclick="switchCVInput('file')" class="cv-tab px-4 py-2 font-medium text-gray-500 hover:text-gray-700">
+                        📎 Upload File
+                    </button>
+                    <button type="button" onclick="switchCVInput('url')" class="cv-tab px-4 py-2 font-medium text-gray-500 hover:text-gray-700">
+                        🔗 CV URL
+                    </button>
+                </div>
+
+                <!-- CV Text Input -->
+                <div id="cv-text-input" class="cv-input">
+                    <textarea 
+                        name="cv_text" 
+                        rows="8" 
+                        class="w-full p-6 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                        placeholder="Paste your CV content here... Include your skills, experiences, and achievements."
+                    >{{ default_cv_text }}</textarea>
+                </div>
+
+                <!-- CV File Upload -->
+                <div id="cv-file-input" class="cv-input hidden">
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                        <input type="file" name="cv_file" accept=".pdf,.docx,.doc,.txt" class="hidden" id="cvFileInput">
+                        <div class="text-4xl mb-4">📎</div>
+                        <p class="text-lg text-gray-600 mb-4">Upload your CV (PDF, Word, or Text)</p>
+                        <button type="button" onclick="document.getElementById('cvFileInput').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            Choose File
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2" id="cvFileName">No file chosen</p>
+                        <p class="text-xs text-gray-400 mt-1">Supported: PDF, DOCX, DOC, TXT (Max 10MB)</p>
+                    </div>
+                </div>
+
+                <!-- CV URL Input -->
+                <div id="cv-url-input" class="cv-input hidden">
+                    <input 
+                        type="url" 
+                        name="cv_url" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                        placeholder="https://linkedin.com/in/your-profile OR https://your-portfolio.com/cv"
+                    >
+                    <p class="text-sm text-gray-500 mt-2">Enter your LinkedIn profile URL or online CV URL</p>
+                </div>
+            </div>
+            
+            <!-- Job Description Section -->
+            <div class="space-y-6">
+                <label class="block text-2xl font-semibold text-gray-800">
+                    💼 Job Description
+                </label>
+                
+                <!-- JD Input Type Selector -->
+                <div class="flex space-x-4 border-b border-gray-200 pb-2">
+                    <button type="button" onclick="switchJDInput('text')" class="jd-tab tab-active px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
+                        📝 Paste Text
+                    </button>
+                    <button type="button" onclick="switchJDInput('file')" class="jd-tab px-4 py-2 font-medium text-gray-500 hover:text-gray-700">
+                        📎 Upload File
+                    </button>
+                    <button type="button" onclick="switchJDInput('url')" class="jd-tab px-4 py-2 font-medium text-gray-500 hover:text-gray-700">
+                        🔗 Job URL
+                    </button>
+                </div>
+
+                <!-- JD Text Input -->
+                <div id="jd-text-input" class="jd-input">
+                    <textarea 
+                        name="jd_text" 
+                        rows="8" 
+                        class="w-full p-6 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                        placeholder="Paste the job description here... Include required skills and qualifications."
+                    >{{ default_jd_text }}</textarea>
+                </div>
+
+                <!-- JD File Upload -->
+                <div id="jd-file-input" class="jd-input hidden">
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                        <input type="file" name="jd_file" accept=".pdf,.docx,.doc,.txt" class="hidden" id="jdFileInput">
+                        <div class="text-4xl mb-4">📎</div>
+                        <p class="text-lg text-gray-600 mb-4">Upload Job Description (PDF, Word, or Text)</p>
+                        <button type="button" onclick="document.getElementById('jdFileInput').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            Choose File
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2" id="jdFileName">No file chosen</p>
+                        <p class="text-xs text-gray-400 mt-1">Supported: PDF, DOCX, DOC, TXT (Max 10MB)</p>
+                    </div>
+                </div>
+
+                <!-- JD URL Input -->
+                <div id="jd-url-input" class="jd-input hidden">
+                    <input 
+                        type="url" 
+                        name="jd_url" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                        placeholder="https://company.com/careers/job-id OR https://linkedin.com/jobs/view/12345"
+                    >
+                    <p class="text-sm text-gray-500 mt-2">Enter the job posting URL from company website or LinkedIn</p>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <button 
+                type="submit" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition duration-200 text-lg shadow-lg"
+            >
+                🚀 Analyze & Generate Practice Questions
+            </button>
+        </form>
+        
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden mt-8 text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-xl text-gray-600">Analyzing your documents and generating personalized questions...</p>
+        </div>
+    </div>
+
+    <!-- Features Preview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="text-3xl mb-4">🔍</div>
+            <h3 class="text-xl font-semibold mb-2">Multiple Input Types</h3>
+            <p class="text-gray-600">Upload files, paste text, or provide URLs</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="text-3xl mb-4">📄</div>
+            <h3 class="text-xl font-semibold mb-2">File Support</h3>
+            <p class="text-gray-600">PDF, Word documents, and text files</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="text-3xl mb-4">⚡</div>
+            <h3 class="text-xl font-semibold mb-2">Smart Processing</h3>
+            <p class="text-gray-600">AI-powered extraction from any format</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// CV Input Switching
+function switchCVInput(type) {
+    // Update tabs
+    document.querySelectorAll('.cv-tab').forEach(tab => {
+        tab.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+        tab.classList.add('text-gray-500');
+    });
+    event.target.classList.add('tab-active', 'text-blue-600', 'border-blue-600');
+    event.target.classList.remove('text-gray-500');
+    
+    // Show selected input, hide others
+    document.querySelectorAll('.cv-input').forEach(input => input.classList.add('hidden'));
+    document.getElementById(`cv-${type}-input`).classList.remove('hidden');
+}
+
+// JD Input Switching
+function switchJDInput(type) {
+    // Update tabs
+    document.querySelectorAll('.jd-tab').forEach(tab => {
+        tab.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+        tab.classList.add('text-gray-500');
+    });
+    event.target.classList.add('tab-active', 'text-blue-600', 'border-blue-600');
+    event.target.classList.remove('text-gray-500');
+    
+    // Show selected input, hide others
+    document.querySelectorAll('.jd-input').forEach(input => input.classList.add('hidden'));
+    document.getElementById(`jd-${type}-input`).classList.remove('hidden');
+}
+
+// File input handlers
+document.getElementById('cvFileInput').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+    document.getElementById('cvFileName').textContent = fileName;
+});
+
+document.getElementById('jdFileInput').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+    document.getElementById('jdFileName').textContent = fileName;
+});
+
+// Form submission
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Show loading
+    document.getElementById('loading').classList.remove('hidden');
+    const submitBtn = document.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    // Determine CV input type and get data
+    const cvActiveTab = document.querySelector('.cv-tab.tab-active').textContent.trim();
+    if (cvActiveTab.includes('Paste Text')) {
+        const cvText = document.querySelector('textarea[name="cv_text"]').value;
+        if (!cvText.trim()) {
+            alert('Please enter your CV text');
+            document.getElementById('loading').classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+        formData.append('cv_text', cvText);
+        formData.append('cv_type', 'text');
+    } else if (cvActiveTab.includes('Upload File')) {
+        const fileInput = document.querySelector('input[name="cv_file"]');
+        if (!fileInput.files[0]) {
+            alert('Please select a file for your CV');
+            document.getElementById('loading').classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+        formData.append('cv_file', fileInput.files[0]);
+        formData.append('cv_type', 'file');
+    } else if (cvActiveTab.includes('CV URL')) {
+        const cvUrl = document.querySelector('input[name="cv_url"]').value;
+        if (!cvUrl.trim()) {
+            alert('Please enter a CV URL');
+            document.getElementById('loading').classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+        formData.append('cv_url', cvUrl);
+        formData.append('cv_type', 'url');
+    }
+    
+    // Determine JD input type and get data
+    const jdActiveTab = document.querySelector('.jd-tab.tab-active').textContent.trim();
+    if (jdActiveTab.includes('Paste Text')) {
+        const jdText = document.querySelector('textarea[name="jd_text"]').value;
+        if (!jdText.trim()) {
+            alert('Please enter the job description text');
+            document.getElementById('loading').classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+        formData.append('jd_text', jdText);
+        formData.append('jd_type', 'text');
+    } else if (jdActiveTab.includes('Upload File')) {
+        const fileInput = document.querySelector('input[name="jd_file"]');
+        if (!fileInput.files[0]) {
+            alert('Please select a file for the job description');
+            document.getElementById('loading').classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+        formData.append('jd_file', fileInput.files[0]);
+        formData.append('jd_type', 'file');
+    } else if (jdActiveTab.includes('Job URL')) {
+        const jdUrl = document.querySelector('input[name="jd_url"]').value;
+        if (!jdUrl.trim()) {
+            alert('Please enter a job description URL');
+            document.getElementById('loading').classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+        formData.append('jd_url', jdUrl);
+        formData.append('jd_type', 'url');
+    }
+    
+    try {
+        const response = await fetch('/api/parse/', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Redirect to skill gap page with the session ID
+            window.location.href = `/skill-gap/${data.session_id}/`;
+        } else {
+            throw new Error(data.error || 'Upload failed');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+        document.getElementById('loading').classList.add('hidden');
+        submitBtn.disabled = false;
+    }
+});
+</script>
+
+<style>
+.tab-active {
+    border-bottom: 2px solid #2563eb;
+    color: #2563eb;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.cv-input, .jd-input {
+    transition: all 0.3s ease;
+}
+</style>
+{% endblock %}

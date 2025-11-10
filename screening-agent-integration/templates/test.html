@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test All APIs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8 bg-gray-100">
+    <h1 class="text-3xl font-bold mb-6 text-blue-600">API Testing Dashboard</h1>
+    
+    <!-- Test Parse Endpoint -->
+    <div class="mb-6 p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">1. Test Parse Endpoint</h2>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block mb-2">CV Text:</label>
+                <textarea id="cvText" class="w-full p-3 border rounded" rows="4">Experienced Python developer with Django framework skills. Built web applications and led teams.</textarea>
+            </div>
+            <div>
+                <label class="block mb-2">Job Description Text:</label>
+                <textarea id="jdText" class="w-full p-3 border rounded" rows="4">Looking for Python developer with Django experience. Must have team leadership and Docker skills.</textarea>
+            </div>
+        </div>
+        <button onclick="testParse()" class="bg-blue-500 text-white px-6 py-2 rounded">Test Parse API</button>
+        <div id="parseResult" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
+    </div>
+
+    <!-- Test Skills Endpoint -->
+    <div class="mb-6 p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">2. Test Skills Endpoint</h2>
+        <input type="number" id="sessionId" value="1" class="p-2 border rounded mb-4" placeholder="Session ID">
+        <button onclick="testSkills()" class="bg-green-500 text-white px-6 py-2 rounded">Test Skills API</button>
+        <div id="skillsResult" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
+    </div>
+
+    <!-- Test Questions Endpoint -->
+    <div class="mb-6 p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">3. Test Questions Endpoint</h2>
+        <button onclick="testQuestions()" class="bg-purple-500 text-white px-6 py-2 rounded">Test Questions API</button>
+        <div id="questionsResult" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
+    </div>
+
+    <!-- Test Transcribe Endpoint -->
+    <div class="mb-6 p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">4. Test Transcribe Endpoint</h2>
+        <textarea id="speechText" class="w-full p-3 border rounded mb-4" rows="3">Hello, this is my um answer to the question. I improved efficiency by 30% using Python automation.</textarea>
+        <button onclick="testTranscribe()" class="bg-yellow-500 text-white px-6 py-2 rounded">Test Transcribe API</button>
+        <div id="transcribeResult" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
+    </div>
+
+    <!-- Test Score Endpoint -->
+    <div class="mb-6 p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">5. Test Score Endpoint</h2>
+        <textarea id="answerText" class="w-full p-3 border rounded mb-4" rows="3">I led a Django project that improved customer satisfaction by 30%. We used agile methodology.</textarea>
+        <button onclick="testScore()" class="bg-red-500 text-white px-6 py-2 rounded">Test Score API</button>
+        <div id="scoreResult" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
+    </div>
+
+    <script>
+        // Get CSRF token function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function testParse() {
+            const cvText = document.getElementById('cvText').value;
+            const jdText = document.getElementById('jdText').value;
+            
+            try {
+                const response = await fetch('/api/parse/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        cv_text: cvText,
+                        jd_text: jdText
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('parseResult').innerHTML = `<pre class="text-green-600">${JSON.stringify(data, null, 2)}</pre>`;
+                document.getElementById('parseResult').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('parseResult').innerHTML = `<pre class="text-red-600">Error: ${error}</pre>`;
+                document.getElementById('parseResult').classList.remove('hidden');
+            }
+        }
+
+        async function testSkills() {
+            const sessionId = document.getElementById('sessionId').value;
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}/skills/`);
+                const data = await response.json();
+                document.getElementById('skillsResult').innerHTML = `<pre class="text-green-600">${JSON.stringify(data, null, 2)}</pre>`;
+                document.getElementById('skillsResult').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('skillsResult').innerHTML = `<pre class="text-red-600">Error: ${error}</pre>`;
+                document.getElementById('skillsResult').classList.remove('hidden');
+            }
+        }
+
+        async function testQuestions() {
+            const sessionId = document.getElementById('sessionId').value;
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}/questions/`);
+                const data = await response.json();
+                document.getElementById('questionsResult').innerHTML = `<pre class="text-green-600">${JSON.stringify(data, null, 2)}</pre>`;
+                document.getElementById('questionsResult').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('questionsResult').innerHTML = `<pre class="text-red-600">Error: ${error}</pre>`;
+                document.getElementById('questionsResult').classList.remove('hidden');
+            }
+        }
+
+        async function testTranscribe() {
+            const speechText = document.getElementById('speechText').value;
+            try {
+                const response = await fetch('/api/transcribe/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        text: speechText
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('transcribeResult').innerHTML = `<pre class="text-green-600">${JSON.stringify(data, null, 2)}</pre>`;
+                document.getElementById('transcribeResult').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('transcribeResult').innerHTML = `<pre class="text-red-600">Error: ${error}</pre>`;
+                document.getElementById('transcribeResult').classList.remove('hidden');
+            }
+        }
+
+        async function testScore() {
+            const sessionId = document.getElementById('sessionId').value;
+            const answerText = document.getElementById('answerText').value;
+            try {
+                const response = await fetch('/api/score/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        session_id: parseInt(sessionId),
+                        transcript_text: answerText
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('scoreResult').innerHTML = `<pre class="text-green-600">${JSON.stringify(data, null, 2)}</pre>`;
+                document.getElementById('scoreResult').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('scoreResult').innerHTML = `<pre class="text-red-600">Error: ${error}</pre>`;
+                document.getElementById('scoreResult').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

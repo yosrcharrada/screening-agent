@@ -1,0 +1,157 @@
+{% extends 'cv_gen/base.html' %}
+
+{% block title %}Preview - {{ cv.full_name }} | CV Generator{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Generate with AI Button -->
+    <form method="post" class="mb-8 text-center">
+        {% csrf_token %}
+        <button type="submit" name="action" value="generate"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 text-lg">
+            ✨ Generate with AI
+        </button>
+    </form>
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">{{ cv.full_name }}'s CV Preview</h2>
+        <p class="text-xl text-gray-600">Generated with AI-powered content</p>
+    </div>
+
+    <!-- Professional Header Card -->
+    <div class="bg-blue-50 rounded-2xl shadow-lg p-8 mb-8 border-2 border-blue-200">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">{{ cv.full_name }}</h1>
+        <h2 class="text-2xl text-blue-600 font-semibold mb-4">{{ cv.professional_headline }}</h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-600">
+            {% if cv.email %}
+            <div>📧 {{ cv.email }}</div>
+            {% endif %}
+            {% if cv.phone %}
+            <div>📱 {{ cv.phone }}</div>
+            {% endif %}
+            {% if cv.location %}
+            <div>📍 {{ cv.location }}</div>
+            {% endif %}
+            <div>📄 {{ cv.profession }}</div>
+        </div>
+    </div>
+
+    <!-- Professional Summary -->
+    {% if cv.generated_summary %}
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-l-4 border-blue-600">
+        <h3 class="text-2xl font-semibold mb-4 text-gray-800">📝 Professional Summary</h3>
+        <p class="text-gray-700 leading-relaxed text-lg">
+            {{ cv.generated_summary }}
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Skills Section -->
+    {% if skills %}
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-l-4 border-green-600">
+        <h3 class="text-2xl font-semibold mb-4 text-gray-800">🛠️ Skills</h3>
+        <div class="flex flex-wrap gap-3">
+            {% for skill in skills %}
+            <span class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-semibold">
+                {{ skill.skill_name }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Work Experience & Achievements -->
+    {% if work_experiences %}
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-l-4 border-purple-600">
+        <h3 class="text-2xl font-semibold mb-6 text-gray-800">💼 Work Experience</h3>
+
+        {% for exp in work_experiences %}
+        <div class="mb-8 last:mb-0">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h4 class="text-xl font-bold text-gray-800">{{ exp.job_title }}</h4>
+                    <p class="text-purple-600 font-semibold">{{ exp.company_name }}</p>
+                </div>
+                <span class="text-gray-600 text-sm">{{ exp.start_date|date:"M Y" }} - {% if exp.is_current %}Present{% else %}{{ exp.end_date|date:"M Y" }}{% endif %}</span>
+            </div>
+
+            <!-- Generated Achievement Bullets -->
+            {% if exp.bullets_list %}
+            <div class="mt-4 ml-4 space-y-2">
+                <p class="text-sm font-semibold text-gray-600 mb-2">Key Achievements:</p>
+                {% for bullet in exp.bullets_list %}
+                {% if bullet.strip %}
+                <div class="flex gap-3 text-gray-700">
+                    <span class="text-purple-600 font-bold">•</span>
+                    <p>{{ bullet|safe }}</p>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+                {% if not exp.bullets_list and exp.job_description %}
+    <div class="mt-4 ml-4 space-y-2">
+        <p class="text-sm font-semibold text-gray-600 mb-2">Details:</p>
+        {% for bullet in exp.job_description.splitlines %}
+        {% if bullet.strip %}
+        <div class="flex gap-3 text-gray-700">
+            <span class="text-purple-600 font-bold">•</span>
+            <p>{{ bullet|safe }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+            {% if not forloop.last %}
+            <hr class="mt-6 border-gray-200">
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Validation Status -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-semibold mb-4 text-gray-800">✅ Content Quality</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-green-50 p-6 rounded-lg border-2 border-green-200">
+                <div class="flex items-center mb-2">
+                    <div class="text-3xl mr-3">✅</div>
+                    <h4 class="text-lg font-semibold text-green-800">Valid Content</h4>
+                </div>
+                <p class="text-green-700">Generated content passes quality validation</p>
+            </div>
+            <div class="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+                <div class="flex items-center mb-2">
+                    <div class="text-3xl mr-3">🎯</div>
+                    <h4 class="text-lg font-semibold text-blue-800">Professional Quality</h4>
+                </div>
+                <p class="text-blue-700">Uses real examples from 8,686 professional resumes</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-4 justify-center pb-12">
+        <a href="{% url 'cv_gen:cv_download' cv.id %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg transition duration-200 text-lg inline-block">
+            ⬇️ Download PDF
+        </a>
+
+        <a href="{% url 'cv_gen:cv_download_latex_pdf' cv.id %}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg transition duration-200 text-lg inline-block">
+            ⬇️ Download LaTeX PDF
+        </a>
+        <a href="{% url 'cv_gen:cv_download_latex' cv.id %}" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-lg transition duration-200 text-lg inline-block">
+            ⬇️ Download LaTeX
+        </a>
+        <a href="{% url 'cv_gen:cv_edit' cv.id %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg transition duration-200 text-lg inline-block">
+            ✏️ Edit CV
+        </a>
+        <a href="{% url 'cv_gen:cv_list' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg transition duration-200 text-lg inline-block">
+            ← Back to All CVs
+        </a>
+    </div>
+</div>
+{% endblock %}
